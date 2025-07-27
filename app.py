@@ -154,10 +154,7 @@ def insert_fake_data():
     db.session.add(product2)
     db.session.commit()
 
-@app.before_first_request
-def initialize():
-    if not Product.query.first():
-        insert_fake_data()
+
 
 
 

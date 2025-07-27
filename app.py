@@ -351,13 +351,13 @@ def admin_dashboard():
         type_counts[t] = type_counts.get(t, 0) + 1
 
     return render_template('admin_dashboard.html',
-                           products=all_products,
-                           total_qty=total_qty,
-                           total_sold=total_sold,
-                           total_remaining=total_remaining,
                            total_revenue=total_revenue,
-                           seller_counts=seller_counts,
-                           type_counts=type_counts)
+                           total_products=len(all_products),
+                           total_sold=total_sold,
+                           total_sellers=len(seller_counts),
+                           seller_data=seller_counts,
+                           chart_labels=list(type_counts.keys()),
+                           chart_data=list(type_counts.values()))
 
 @app.route('/product_type_overview')
 @login_required
@@ -389,62 +389,15 @@ def product_sales_summary():
         })
     return render_template('product_sales_summary.html', summary=summary)
 
-@app.route('/add_to_cart/<id>', methods=['POST'])
+@app.route('/seller_overview')
 @login_required
-@role_required('buyer')
-def add_to_cart(id):
-    username = session['username']
-    for product_list in sellers.values():
-        for p in product_list:
-            if p['id'] == id:
-                carts[username].append(p.copy())
-                # Increment sold count and reduce quantity
-                if 'sold' not in p:
-                    p['sold'] = '0'
-                p['sold'] = str(int(p['sold']) + 1)
-                p['quantity'] = str(max(0, int(p['quantity']) - 1))
-                flash('Product added to cart!', 'success')
-                return redirect('/buyer_dashboard')
-    flash('Product not found.', 'danger')
-    return redirect('/buyer_dashboard')
+@role_required('admin')
+def seller_overview():
+    seller_counts = seller_product_counts()
+    return render_template('seller_overview.html', seller_data=seller_counts)
 
-@app.route('/cart')
-@login_required
-@role_required('buyer')
-def view_cart():
-    username = session['username']
-    cart_items = carts.get(username, [])
-    total_price = sum(float(item['price']) for item in cart_items)
-    return render_template('cart.html', cart_items=cart_items, total_price=total_price)
+# Additional routes for product gallery, charts etc can be added here if you have them
 
-@app.route('/remove_from_cart/<id>', methods=['POST'])
-@login_required
-@role_required('buyer')
-def remove_from_cart(id):
-    username = session['username']
-    cart = carts.get(username, [])
-    for item in cart:
-        if item['id'] == id:
-            cart.remove(item)
-            flash('Item removed from cart.', 'info')
-            break
-    return redirect('/cart')
-
-@app.route('/checkout')
-@login_required
-@role_required('buyer')
-def checkout():
-    username = session['username']
-    cart_items = carts.get(username, [])
-    if not cart_items:
-        flash('Your cart is empty.', 'warning')
-        return redirect('/cart')
-    total = sum(float(item['price']) for item in cart_items)
-    send_email(username, f"Thanks for purchasing! Total: ₹{total}")
-    carts[username] = []
-    flash(f'Purchase successful! Total charged: ₹{total}', 'success')
-    return redirect('/buyer_dashboard')
-
-# Run server
 if __name__ == '__main__':
     app.run(debug=True)
+

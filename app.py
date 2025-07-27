@@ -6,30 +6,22 @@ from dotenv import load_dotenv
 import os
 import uuid
 
-# ------------------ Load Environment Variables ------------------
 load_dotenv()
 
-# ------------------ Flask App Configuration ------------------
 app = Flask(__name__)
-
-# Use secret key from environment variable
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
-
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
-
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# ------------------ Simulated Database ------------------
 products = []
 sellers = {}
 users = {
     'admin': {'password': generate_password_hash('1234'), 'role': 'admin'}
 }
 carts = {}
-# ------------------ Utility Functions ------------------
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -61,8 +53,6 @@ def filter_products_by_type(products, scent_type):
 
 def send_email(to, message):
     print(f"[EMAIL TO: {to}] {message}")
-
-# ------------------ Routes ------------------
 
 @app.route('/')
 def home():
@@ -240,13 +230,11 @@ def edit_product(id):
                 product['quantity'] = request.form['quantity']
                 product['type'] = request.form['type']
                 product['unit'] = request.form['unit']
-
                 image = request.files.get('image')
                 if image and allowed_file(image.filename):
                     filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
                     image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     product['image'] = UPLOAD_FOLDER + filename
-
                 flash('Product updated!', 'success')
                 return redirect('/seller_dashboard')
             return render_template('edit_product.html', product=product)
@@ -330,11 +318,9 @@ def checkout():
         return redirect('/cart')
     total = sum(int(item['price']) for item in cart_items)
     send_email(username, f"Thanks for purchasing! Total: ₹{total}")
-    carts[username] = []  # Clear cart
+    carts[username] = []
     flash(f'Purchase successful! Total charged: ₹{total}', 'success')
     return redirect('/buyer_dashboard')
-
-# ------------------ Main ------------------
 
 if __name__ == '__main__':
     app.run(debug=True)

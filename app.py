@@ -55,6 +55,7 @@ def filter_products_by_type(products_list, scent_type):
     return products_list
 
 def send_email(to, message):
+    # Placeholder for real email sending logic
     print(f"[EMAIL TO: {to}] {message}")
 
 def calculate_stock_sold(products_list):
@@ -86,13 +87,11 @@ def seller_product_counts():
 
 # Insert some fake data for demonstration
 def insert_fake_data():
-    # Add sellers and products only if none exist
     if not sellers:
         sellers['Shaurya'] = []
         sellers['Rehan'] = []
         sellers['Sara'] = []
     if not products:
-        # Add products for sellers
         import random
         for seller in ['Shaurya', 'Rehan', 'Sara']:
             for i in range(3):  # 3 products each
@@ -245,8 +244,10 @@ def add_product():
     image = request.files['image']
     if image and allowed_file(image.filename):
         filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
-        image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        image_path = UPLOAD_FOLDER + filename
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image.save(filepath)
+        # Use relative URL path for templates
+        image_path = f'/static/uploads/{filename}'
     else:
         flash('Invalid image file!', 'danger')
         return redirect('/seller_dashboard')
@@ -301,8 +302,9 @@ def edit_product(id):
                 image = request.files.get('image')
                 if image and allowed_file(image.filename):
                     filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
-                    image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    product['image'] = UPLOAD_FOLDER + filename
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    image.save(filepath)
+                    product['image'] = f'/static/uploads/{filename}'
                 flash('Product updated!', 'success')
                 return redirect('/seller_dashboard')
             return render_template('edit_product.html', product=product)
@@ -334,17 +336,14 @@ def buyer_dashboard():
 @login_required
 @role_required('admin')
 def admin_dashboard():
-    # Aggregate all products for analytics
     all_products = []
     for prod_list in sellers.values():
         all_products.extend(prod_list)
-    
-    # Calculate stock & sales
+
     total_qty, total_sold, total_remaining = calculate_stock_sold(all_products)
     total_revenue = calculate_revenue(all_products)
     seller_counts = seller_product_counts()
 
-    # Prepare product type counts
     type_counts = {}
     for p in all_products:
         t = p['type']
@@ -366,7 +365,6 @@ def product_type_overview():
     all_products = []
     for prod_list in sellers.values():
         all_products.extend(prod_list)
-    # Count products by type
     counts = {}
     for p in all_products:
         counts[p['type']] = counts.get(p['type'], 0) + 1
@@ -379,7 +377,6 @@ def product_sales_summary():
     all_products = []
     for prod_list in sellers.values():
         all_products.extend(prod_list)
-    # Calculate revenue & sold quantities per product
     summary = []
     for p in all_products:
         summary.append({
@@ -395,6 +392,7 @@ def product_sales_summary():
 def seller_overview():
     seller_counts = seller_product_counts()
     return render_template('seller_overview.html', seller_data=seller_counts)
+
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
@@ -408,13 +406,8 @@ def reset_password():
             flash('Invalid user.', 'danger')
             return redirect('/forgot_password')
     else:
-        # GET request with username in query param
         username = request.args.get('username', '')
         return render_template('reset_password.html', username=username)
 
-
-# Additional routes for product gallery, charts etc can be added here if you have them
-
 if __name__ == '__main__':
     app.run(debug=True)
-

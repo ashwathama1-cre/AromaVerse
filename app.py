@@ -476,19 +476,7 @@ def product_gallery():
 def page_not_found(e):
     return render_template("404.html"), 404
 
-@app.route('/add_to_cart/<id>')
-@login_required
-@role_required('buyer')
 
-
-
-@app.route('/cart')
-@login_required
-@role_required('buyer')
-def view_cart():
-    username = session['username']
-    user_cart = carts.get(username, [])
-    return render_template('cart.html', products=user_cart)
 
 
 

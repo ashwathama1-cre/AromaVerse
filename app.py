@@ -357,6 +357,24 @@ def admin_dashboard():
                            seller_data=seller_counts,
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
+#new
+@app.route('/product_charts')
+@login_required
+@role_required('admin')
+def product_charts():
+    all_products = []
+    for prod_list in sellers.values():
+        all_products.extend(prod_list)
+
+    type_counts = {}
+    for p in all_products:
+        t = p['type']
+        type_counts[t] = type_counts.get(t, 0) + 1
+
+    return render_template('product_charts.html',
+                           chart_labels=list(type_counts.keys()),
+                           chart_data=list(type_counts.values()))
+
 
 @app.route('/product_type_overview')
 @login_required

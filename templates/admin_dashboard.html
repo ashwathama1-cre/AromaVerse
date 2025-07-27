@@ -6,19 +6,19 @@
 
 <!-- Quick Navigation Section -->
 <div class="row mb-4">
-  <div class="col-md-2"><a href="/change_password" class="btn btn-outline-dark w-100">🔑 Change Password</a></div>
-  <div class="col-md-2"><a href="/products" class="btn btn-outline-dark w-100">🖼️ Product Gallery</a></div>
-  <div class="col-md-2"><a href="/product_description" class="btn btn-outline-dark w-100">📂 Type Overview</a></div>
-  <div class="col-md-2"><a href="/product_charts" class="btn btn-outline-dark w-100">📊 Charts</a></div>
-  <div class="col-md-2"><a href="/product_sales" class="btn btn-outline-dark w-100">🧾 Sales Summary</a></div>
-  <div class="col-md-2"><a href="/seller_overview" class="btn btn-outline-dark w-100">👨‍💼 Sellers</a></div>
+  <div class="col-md-2"><a href="{{ url_for('change_password') }}" class="btn btn-outline-dark w-100">🔑 Change Password</a></div>
+  <div class="col-md-2"><a href="{{ url_for('product_gallery') }}" class="btn btn-outline-dark w-100">🖼️ Product Gallery</a></div>
+  <div class="col-md-2"><a href="{{ url_for('product_type_overview') }}" class="btn btn-outline-dark w-100">📂 Type Overview</a></div>
+  <div class="col-md-2"><a href="{{ url_for('product_charts') }}" class="btn btn-outline-dark w-100">📊 Charts</a></div>
+  <div class="col-md-2"><a href="{{ url_for('product_sales_summary') }}" class="btn btn-outline-dark w-100">🧾 Sales Summary</a></div>
+  <div class="col-md-2"><a href="{{ url_for('seller_overview') }}" class="btn btn-outline-dark w-100">👨‍💼 Sellers</a></div>
 </div>
 
 <!-- Key Metrics -->
 <div class="row g-3">
   <div class="col-md-3">
     <div class="card border-success shadow-sm">
-      <div class="card-body text-success">
+      <div class="card-body text-success text-center">
         <h5>💰 Total Revenue</h5>
         <p class="fs-4">₹ {{ total_revenue or 0 }}</p>
       </div>
@@ -26,24 +26,24 @@
   </div>
   <div class="col-md-3">
     <div class="card border-primary shadow-sm">
-      <div class="card-body text-primary">
-        <h5>🛍️ Products</h5>
+      <div class="card-body text-primary text-center">
+        <h5>🛍️ Total Products</h5>
         <p class="fs-4">{{ total_products or 0 }}</p>
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="card border-danger shadow-sm">
-      <div class="card-body text-danger">
-        <h5>📦 Sold</h5>
+      <div class="card-body text-danger text-center">
+        <h5>📦 Total Sold</h5>
         <p class="fs-4">{{ total_sold or 0 }}</p>
       </div>
     </div>
   </div>
   <div class="col-md-3">
     <div class="card border-warning shadow-sm">
-      <div class="card-body text-warning">
-        <h5>👥 Sellers</h5>
+      <div class="card-body text-warning text-center">
+        <h5>👥 Total Sellers</h5>
         <p class="fs-4">{{ total_sellers or 0 }}</p>
       </div>
     </div>
@@ -73,10 +73,12 @@
       <tbody>
         {% for seller in seller_data %}
         <tr>
-          <td>{{ seller.name }}</td>
+          <td>{{ seller.seller }}</td>
           <td>{{ seller.email }}</td>
           <td>{{ seller.product_count }}</td>
         </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center">No sellers found.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -87,24 +89,29 @@
 {% block extra_script %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ctx = document.getElementById('productPieChart');
+  const ctx = document.getElementById('productPieChart').getContext('2d');
   const productPieChart = new Chart(ctx, {
     type: 'pie',
     data: {
-      labels: {{ chart_labels|safe }},
+      labels: {{ chart_labels | safe }},
       datasets: [{
         label: 'Product Types',
-        data: {{ chart_data|safe }},
+        data: {{ chart_data | safe }},
         backgroundColor: [
           '#ffc107', '#0d6efd', '#dc3545', '#198754', '#6f42c1', '#fd7e14'
-        ]
+        ],
+        borderWidth: 1
       }]
     },
     options: {
       responsive: true,
       plugins: {
         legend: {
-          position: 'right'
+          position: 'right',
+          labels: {
+            boxWidth: 20,
+            padding: 15
+          }
         },
         tooltip: {
           callbacks: {

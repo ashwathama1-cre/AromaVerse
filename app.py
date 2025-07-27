@@ -373,6 +373,9 @@ def edit_product(id):
     flash(f"{role.capitalize()} created!", 'success')
 
 
+@app.route('/buyer_dashboard')
+@login_required
+@role_required('buyer')
 def buyer_dashboard():
     all_products = Product.query.all()
 
@@ -458,59 +461,52 @@ def admin_dashboard():
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
 
-#new
 @app.route('/product_charts')
 @login_required
 @role_required('admin')
 def product_charts():
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
+    all_products = Product.query.all()
 
     type_counts = {}
     for p in all_products:
-        t = p['type']
+        t = p.type
         type_counts[t] = type_counts.get(t, 0) + 1
 
     return render_template('product_charts.html',
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
 
-
 @app.route('/product_type_overview')
 @login_required
 @role_required('admin')
 def product_type_overview():
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
+    all_products = Product.query.all()
     counts = {}
     for p in all_products:
-        counts[p['type']] = counts.get(p['type'], 0) + 1
+        counts[p.type] = counts.get(p.type, 0) + 1
     return render_template('product_type_overview.html', counts=counts)
 
 @app.route('/product_sales_summary')
 @login_required
 @role_required('admin')
 def product_sales_summary():
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
+    all_products = Product.query.all()
     summary = []
     for p in all_products:
         summary.append({
-            'name': p['name'],
-            'sold': int(p.get('sold', 0)),
-            'revenue': int(p.get('sold', 0)) * float(p['price'])
+            'name': p.name,
+            'sold': p.sold,
+            'revenue': p.sold * p.price
         })
     return render_template('product_sales_summary.html', summary=summary)
 
-@app.route('/seller_overview')
-@login_required
-@role_required('admin')
-def seller_overview():
-    seller_counts = seller_product_counts()
-    return render_template('seller_overview.html', seller_data=seller_counts)
+
+def seller_product_counts():
+    sellers = User.query.filter_by(role='seller').all()
+    return [{
+        'seller': seller.username,
+        'product_count': Product.query.filter_by(seller_username=seller.username).count()
+    } for seller in sellers]
 
 
 @app.route('/reset_password', methods=['GET', 'POST'])

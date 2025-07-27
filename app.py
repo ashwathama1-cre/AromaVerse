@@ -409,5 +409,20 @@ def reset_password():
         username = request.args.get('username', '')
         return render_template('reset_password.html', username=username)
 
+@app.route('/product_gallery')
+@login_required
+@role_required('admin')
+def product_gallery():
+    # Gather all products for display
+    all_products = []
+    for prod_list in sellers.values():
+        all_products.extend(prod_list)
+
+    # Optionally add filtering/sorting here
+
+    return render_template('product_gallery.html', products=all_products)
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)

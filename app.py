@@ -395,6 +395,23 @@ def product_sales_summary():
 def seller_overview():
     seller_counts = seller_product_counts()
     return render_template('seller_overview.html', seller_data=seller_counts)
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        username = request.form['username']
+        new_password = request.form['new_password']
+        if username in users:
+            users[username]['password'] = generate_password_hash(new_password)
+            flash('Password reset successfully! Please login.', 'success')
+            return redirect('/login')
+        else:
+            flash('Invalid user.', 'danger')
+            return redirect('/forgot_password')
+    else:
+        # GET request with username in query param
+        username = request.args.get('username', '')
+        return render_template('reset_password.html', username=username)
+
 
 # Additional routes for product gallery, charts etc can be added here if you have them
 

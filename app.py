@@ -88,6 +88,43 @@ def login():
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        confirm = request.form['confirm_password']
+
+        if username in users:
+            flash('Username already exists!', 'danger')
+        elif any(email == user.get('email') for user in users.values()):
+            flash('Email already registered!', 'danger')
+        elif password != confirm:
+            flash('Passwords do not match!', 'warning')
+        else:
+            users[username] = {
+                'password': generate_password_hash(password),
+                'email': email,
+                'role': 'buyer'
+            }
+            carts[username] = []
+            flash('Account created! Please login.', 'success')
+            return redirect('/login')
+    return render_template('register.html')
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        for username, user in users.items():
+            if user.get('email') == email:
+                send_email(email, f"Hi {username}, your password reset link: example.com/reset/{username}")
+                flash('Password reset instructions sent to your email.', 'info')
+                return redirect('/login')
+        flash('Email not found!', 'danger')
+    return render_template('forgot_password.html')
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -119,7 +156,6 @@ def add_user():
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
-    error = success = None
     if request.method == 'POST':
         current = request.form['current']
         new = request.form['new']
@@ -128,15 +164,12 @@ def change_password():
         if check_password_hash(users[username]['password'], current):
             if new == confirm:
                 users[username]['password'] = generate_password_hash(new)
-                success = 'Password changed successfully!'
-                flash(success, 'success')
+                flash('Password changed successfully!', 'success')
             else:
-                error = 'New passwords do not match!'
-                flash(error, 'danger')
+                flash('New passwords do not match!', 'danger')
         else:
-            error = 'Current password is incorrect!'
-            flash(error, 'danger')
-    return render_template('change_password.html', error=error, success=success)
+            flash('Current password is incorrect!', 'danger')
+    return render_template('change_password.html')
 
 @app.route('/seller_dashboard')
 @login_required
@@ -305,4 +338,3 @@ def checkout():
 
 if __name__ == '__main__':
     app.run(debug=True)
-

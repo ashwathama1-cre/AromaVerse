@@ -3,6 +3,8 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from dotenv import load_dotenv
+from flask_wtf import CSRFProtect
+from datetime import timedelta
 import os
 import uuid
 
@@ -14,7 +16,10 @@ UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+app.permanent_session_lifetime = timedelta(minutes=30)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+csrf = CSRFProtect(app)
 
 products = []
 sellers = {}
@@ -119,6 +124,7 @@ def login():
         if user and check_password_hash(user['password'], password):
             session['username'] = username
             session['role'] = user['role']
+            session.permanent = True
             if user['role'] == 'admin':
                 return redirect('/admin_dashboard')
             elif user['role'] == 'seller':
@@ -130,6 +136,7 @@ def login():
             flash('Invalid credentials', 'danger')
     return render_template('login.html')
 
+# (The rest of the code remains the same as you've provided)
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':

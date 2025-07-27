@@ -65,7 +65,9 @@ class CartItem(db.Model):
 
 with app.app_context():
     db.create_all()
-  
+    if not Product.query.first():
+        insert_fake_data()
+
 
 
 # Now your models are correct and your app should save new users properly and resolve the foreign key error.

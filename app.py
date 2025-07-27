@@ -304,6 +304,5 @@ def checkout():
 # ------------------ Main ------------------
 
 if __name__ == '__main__':
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=os.getenv('FLASK_DEBUG', 'True').lower() == 'true')
+    app.run(debug=True)
 

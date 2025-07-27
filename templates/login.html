@@ -1,16 +1,15 @@
-<!-- templates/login.html -->
 {% extends "base.html" %}
 {% block title %}Login | Itra Store{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center vh-100">
-  <div class="login-card col-md-4 bg-white shadow rounded-4 p-4">
+<div class="d-flex align-items-center justify-content-center vh-100 bg-light">
+  <div class="login-card col-md-4 col-sm-10 bg-white shadow rounded-4 p-4">
     <div class="login-icon text-center">
-      <i class="fas fa-user-circle fa-3x text-primary mb-3"></i>
+      <i class="bi bi-person-circle display-4 text-primary mb-3"></i>
     </div>
-    <h3 class="text-center mb-4">Login to Itra Store</h3>
+    <h3 class="text-center mb-4">Login to AromaVerse</h3>
 
-    <!-- Optional: Show flash messages -->
+    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -19,13 +18,11 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Fallback if 'error' passed manually -->
     {% if error %}
       <div class="alert alert-danger text-center">{{ error }}</div>
     {% endif %}
 
     <form method="POST">
-      {# Optional if using Flask-WTF with CSRF enabled #}
       {% if csrf_token %}
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% endif %}
@@ -40,6 +37,15 @@
       </div>
       <button type="submit" class="btn btn-primary w-100">🔓 Login</button>
     </form>
+
+    <div class="mt-3 d-flex justify-content-between">
+      <a href="{{ url_for('register') }}" class="text-decoration-none">
+        <i class="bi bi-person-plus-fill"></i> Sign up
+      </a>
+      <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">
+        <i class="bi bi-question-circle"></i> Forgot Password?
+      </a>
+    </div>
   </div>
 </div>
 {% endblock %}

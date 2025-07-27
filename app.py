@@ -65,7 +65,7 @@ class CartItem(db.Model):
 
 with app.app_context():
     db.create_all()
-    insert_fake_data()  # ✅ Call this only once for demo/test
+  
 
 
 # Now your models are correct and your app should save new users properly and resolve the foreign key error.
@@ -119,41 +119,44 @@ def seller_product_counts():
         'email': '',  # Removed in-memory users
         'product_count': len(prod_list)
     } for name, prod_list in sellers.items()]
-
 def insert_fake_data():
-    # Insert demo seller if not already present
-    seller = User.query.filter_by(username='seller1').first()
-    if not seller:
-        seller = User(username='seller1', password=generate_password_hash('1234'), role='seller')
-        db.session.add(seller)
-        db.session.commit()
-
-    # Insert demo products if not already present
-    if not Product.query.filter_by(name='Rose Itra').first():
-        p1 = Product(
-            name='Rose Itra',
-            type='Rose',
-            price='150',
-            quantity='100',
-            unit='ml',
-            image='rose_itra.jpg',
-            seller_username='seller1'
-        )
-        db.session.add(p1)
-
-    if not Product.query.filter_by(name='Musk Itra').first():
-        p2 = Product(
-            name='Musk Itra',
-            type='Musk',
-            price='200',
-            quantity='80',
-            unit='ml',
-            image='musk_itra.jpg',
-            seller_username='seller1'
-        )
-        db.session.add(p2)
-
+    seller = User(username='demo_seller', role='seller', password=generate_password_hash('1234'))
+    db.session.add(seller)
     db.session.commit()
+
+    product1 = Product(
+        id=str(uuid.uuid4()),
+        name='Rose Itra',
+        type='Rose',
+        quantity=50,
+        price=150,
+        unit='ml',
+        image='/static/uploads/rose_itra.jpg',
+        description='Pure rose scent',
+        seller_username='demo_seller'
+    )
+
+    product2 = Product(
+        id=str(uuid.uuid4()),
+        name='Musk Itra',
+        type='Musk',
+        quantity=30,
+        price=200,
+        unit='ml',
+        image='/static/uploads/musk_itra.jpg',
+        description='Strong musk blend',
+        seller_username='demo_seller'
+    )
+
+    db.session.add(product1)
+    db.session.add(product2)
+    db.session.commit()
+
+@app.before_first_request
+def initialize():
+    if not Product.query.first():
+        insert_fake_data()
+
 
 
 # ------------------- Routes -------------------

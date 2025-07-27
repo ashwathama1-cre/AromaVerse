@@ -328,6 +328,16 @@ def product_detail(id):
 @app.route('/buyer_dashboard')
 @login_required
 @role_required('buyer')
+@app.route('/add_to_cart/<int:product_id>')
+def add_to_cart(product_id):
+    product = Product.query.get(product_id)
+    if product:
+        cart = session.get('cart', [])
+        cart.append(product_id)
+        session['cart'] = cart
+        flash(f"{product.name} added to cart!")
+    return redirect(url_for('view_cart'))
+
 def buyer_dashboard():
     all_products = []
     for prod_list in sellers.values():

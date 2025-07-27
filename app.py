@@ -63,10 +63,6 @@ class CartItem(db.Model):
     buyer_username = db.Column(db.String(100), db.ForeignKey('user.username'))
     product_id = db.Column(db.String(100), db.ForeignKey('product.id'))
 
-with app.app_context():
-    db.create_all()
-    if not Product.query.first():
-        insert_fake_data()
 
 
 
@@ -121,39 +117,24 @@ def seller_product_counts():
         'email': '',  # Removed in-memory users
         'product_count': len(prod_list)
     } for name, prod_list in sellers.items()]
+# ------------------ Define insert_fake_data FIRST ------------------
 def insert_fake_data():
-    seller = User(username='demo_seller', role='seller', password=generate_password_hash('1234'))
-    db.session.add(seller)
-    db.session.commit()
+    if not Seller.query.first():
+        seller1 = Seller(username='seller1', password='1234')
+        db.session.add(seller1)
+        db.session.commit()
 
-    product1 = Product(
-        id=str(uuid.uuid4()),
-        name='Rose Itra',
-        type='Rose',
-        quantity=50,
-        price=150,
-        unit='ml',
-        image='/static/uploads/rose_itra.jpg',
-        description='Pure rose scent',
-        seller_username='demo_seller'
-    )
+    if not Product.query.first():
+        p1 = Product(name='Rose Itra', scent_type='Rose', quantity=100, unit='ml', price=150.0, seller_id=1, image='rose_itra.jpg')
+        p2 = Product(name='Musk Itra', scent_type='Musk', quantity=80, unit='ml', price=180.0, seller_id=1, image='musk_itra.jpg')
+        db.session.add_all([p1, p2])
+        db.session.commit()
 
-    product2 = Product(
-        id=str(uuid.uuid4()),
-        name='Musk Itra',
-        type='Musk',
-        quantity=30,
-        price=200,
-        unit='ml',
-        image='/static/uploads/musk_itra.jpg',
-        description='Strong musk blend',
-        seller_username='demo_seller'
-    )
-
-    db.session.add(product1)
-    db.session.add(product2)
-    db.session.commit()
-
+# ------------------ THEN call it inside app context ------------------
+with app.app_context():
+    db.create_all()
+    if not Product.query.first():
+        insert_fake_data()
 
 
 

@@ -65,6 +65,8 @@ class CartItem(db.Model):
 
 with app.app_context():
     db.create_all()
+    insert_fake_data()  # ✅ Call this only once for demo/test
+
 
 # Now your models are correct and your app should save new users properly and resolve the foreign key error.
 # Please ensure this code is merged at the top of your existing file before any logic that uses the models.
@@ -119,32 +121,40 @@ def seller_product_counts():
     } for name, prod_list in sellers.items()]
 
 def insert_fake_data():
-    if not sellers:
-        sellers['Shaurya'] = []
-        sellers['Rehan'] = []
-        sellers['Sara'] = []
-    if not products:
-        import random
-        for seller in ['Shaurya', 'Rehan', 'Sara']:
-            for i in range(3):
-                p_id = str(uuid.uuid4())
-                p_type = ['Rose', 'Musk', 'Oudh'][i % 3]
-                prod = {
-                    'id': p_id,
-                    'name': f'{p_type} Perfume {i+1}',
-                    'price': str(100 + i*50),
-                    'quantity': '50',
-                    'sold': str(random.randint(5, 30)),
-                    'type': p_type,
-                    'unit': 'ml',
-                    'image': '/static/sample_perfume.jpg',
-                    'seller': seller,
-                    'description': f'A wonderful {p_type.lower()} scent with lasting aroma.'
-                }
-                sellers[seller].append(prod)
-                products.append(prod)
+    # Insert demo seller if not already present
+    seller = User.query.filter_by(username='seller1').first()
+    if not seller:
+        seller = User(username='seller1', password=generate_password_hash('1234'), role='seller')
+        db.session.add(seller)
+        db.session.commit()
 
-insert_fake_data()
+    # Insert demo products if not already present
+    if not Product.query.filter_by(name='Rose Itra').first():
+        p1 = Product(
+            name='Rose Itra',
+            type='Rose',
+            price='150',
+            quantity='100',
+            unit='ml',
+            image='rose_itra.jpg',
+            seller_username='seller1'
+        )
+        db.session.add(p1)
+
+    if not Product.query.filter_by(name='Musk Itra').first():
+        p2 = Product(
+            name='Musk Itra',
+            type='Musk',
+            price='200',
+            quantity='80',
+            unit='ml',
+            image='musk_itra.jpg',
+            seller_username='seller1'
+        )
+        db.session.add(p2)
+
+    db.session.commit()
+
 
 # ------------------- Routes -------------------
 
@@ -382,25 +392,36 @@ def buyer_dashboard():
 @role_required('buyer')
 def add_to_cart(id):
     username = session['username']
-    for product in products:
-        if product['id'] == id:
-            carts.setdefault(username, [])
-            carts[username].append(product)
-            flash(f"{product['name']} added to cart!", "success")
-            break
+    product = Product.query.filter_by(id=id).first()
+
+    if not product:
+        flash("Product not found", "danger")
+        return redirect('/buyer_dashboard')
+
+    new_cart_item = CartItem(buyer_username=username, product_id=product.id)
+    db.session.add(new_cart_item)
+    db.session.commit()
+
+    flash(f"{product.name} added to cart!", "success")
     return redirect('/cart')
 
 
 @app.route("/cart")
 @login_required
 @role_required('buyer')
-
-
 def cart():
     username = session['username']
-    cart_items = carts.get(username, [])
-    total_price = sum(float(item['price']) for item in cart_items)
-    return render_template("cart.html", cart_items=cart_items, total_price=total_price)
+    user_cart_items = CartItem.query.filter_by(buyer_username=username).all()
+
+    items = []
+    total_price = 0
+    for item in user_cart_items:
+        product = Product.query.get(item.product_id)
+        if product:
+            items.append(product)
+            total_price += float(product.price)
+
+    return render_template("cart.html", cart_items=items, total_price=total_price)
 
 
 @login_required

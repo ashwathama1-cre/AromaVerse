@@ -37,8 +37,17 @@ csrf = CSRFProtect(app)
 
 # ------------------- Models -------------------
 
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), nullable=False)
+    products = db.relationship('Product', backref='seller', lazy=True)
+    cart_items = db.relationship('CartItem', backref='buyer', lazy=True)
+
 class Product(db.Model):
-    id = db.Column(db.String(100), primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String(100))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
@@ -57,11 +66,11 @@ class CartItem(db.Model):
 with app.app_context():
     db.create_all()
 
-# ------------------- Helpers -------------------
+# Now your models are correct and your app should save new users properly and resolve the foreign key error.
+# Please ensure this code is merged at the top of your existing file before any logic that uses the models.
 
-products = []
-sellers = {}
-carts = {}
+
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -85,10 +94,9 @@ def role_required(role):
             return f(*args, **kwargs)
         return decorated
     return decorator
-
 def filter_products_by_type(products_list, scent_type):
     if scent_type:
-        return [p for p in products_list if p['type'].lower() == scent_type.lower()]
+        return [p for p in products_list if p.type.lower() == scent_type.lower()]
     return products_list
 
 def send_email(to, message):
@@ -257,7 +265,8 @@ def add_user():
 @role_required('seller')
 def seller_dashboard():
     username = session['username']
-    seller_products = sellers.get(username, [])
+    seller_products = Product.query.filter_by(seller_username=username).all()
+
     scent_filter = request.args.get('filter')
     filtered = filter_products_by_type(seller_products, scent_filter)
     return render_template('seller_dashboard.html', products=filtered, scent_filter=scent_filter)
@@ -267,36 +276,40 @@ def seller_dashboard():
 @role_required('seller')
 def add_product():
     name = request.form['name']
-    price = request.form['price']
-    quantity = request.form['quantity']
+    price = float(request.form['price'])
+    quantity = int(request.form['quantity'])
     type_ = request.form['type']
     unit = request.form['unit']
+    description = request.form.get('description', '')
     image = request.files['image']
+
     if image and allowed_file(image.filename):
-        filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
+        filename = secure_filename(f"{uuid.uuid4().hex}_{image.filename}")
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         image.save(filepath)
-        # Use relative URL path for templates
-        image_path = f'/static/uploads/{filename}'
+        image_path = f"/static/uploads/{filename}"
     else:
-        flash('Invalid image file!', 'danger')
+        flash('❌ Invalid image file!', 'danger')
         return redirect('/seller_dashboard')
 
-    new_product = {
-        'id': str(uuid.uuid4()),
-        'name': name,
-        'price': price,
-        'quantity': quantity,
-        'sold': '0',
-        'type': type_,
-        'unit': unit,
-        'image': image_path,
-        'seller': session['username'],
-        'description': request.form.get('description', '')
-    }
-    sellers[session['username']].append(new_product)
-    products.append(new_product)  # add to global products list
-    flash('Product added successfully!', 'success')
+    # Save to database using SQLAlchemy
+    new_product = Product(
+        id=str(uuid.uuid4()),
+        name=name,
+        price=price,
+        quantity=quantity,
+        sold=0,
+        type=type_,
+        unit=unit,
+        image=image_path,
+        seller_username=session['username'],
+        description=description
+    )
+
+    db.session.add(new_product)
+    db.session.commit()
+
+    flash('✅ Product added successfully!', 'success')
     return redirect('/seller_dashboard')
 
 @app.route('/delete_product/<id>')
@@ -304,15 +317,16 @@ def add_product():
 @role_required('seller')
 def delete_product(id):
     username = session['username']
-    seller_products = sellers.get(username, [])
-    for p in seller_products:
-        if p['id'] == id:
-            seller_products.remove(p)
-            # Also remove from global products list
-            products[:] = [prod for prod in products if prod['id'] != id]
-            flash('Product deleted!', 'warning')
-            break
+    product = Product.query.filter_by(id=id, seller_username=username).first()
+    if product:
+        db.session.delete(product)
+        db.session.commit()
+        flash('Product deleted successfully!', 'warning')
+    else:
+        flash('Product not found or unauthorized', 'danger')
     return redirect('/seller_dashboard')
+
+
 
 @app.route('/edit_product/<id>', methods=['GET', 'POST'])
 @login_required
@@ -357,9 +371,8 @@ def product_detail(id):
 
 
 def buyer_dashboard():
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
+    all_products = Product.query.all()
+
     scent_filter = request.args.get('filter')
     filtered = filter_products_by_type(all_products, scent_filter)
     return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)

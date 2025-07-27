@@ -16,15 +16,12 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-# In-memory data structures for demo
 products = []
 sellers = {}
 users = {
     'admin': {'password': generate_password_hash('1234'), 'role': 'admin', 'email': 'admin@example.com'}
 }
 carts = {}
-
-# -- Helper functions --
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -55,18 +52,15 @@ def filter_products_by_type(products_list, scent_type):
     return products_list
 
 def send_email(to, message):
-    # Placeholder for real email sending logic
     print(f"[EMAIL TO: {to}] {message}")
 
 def calculate_stock_sold(products_list):
-    """Calculate total quantity, sold and remaining for all products combined"""
     total_qty = sum(int(p['quantity']) + int(p.get('sold', 0)) for p in products_list)
     total_sold = sum(int(p.get('sold', 0)) for p in products_list)
     total_remaining = sum(int(p['quantity']) for p in products_list)
     return total_qty, total_sold, total_remaining
 
 def calculate_revenue(products_list):
-    """Calculate total revenue from sold products"""
     total_revenue = 0
     for p in products_list:
         sold = int(p.get('sold', 0))
@@ -75,7 +69,6 @@ def calculate_revenue(products_list):
     return total_revenue
 
 def seller_product_counts():
-    """Return a list of sellers with their product counts"""
     result = []
     for seller_name, prod_list in sellers.items():
         result.append({
@@ -85,7 +78,6 @@ def seller_product_counts():
         })
     return result
 
-# Insert some fake data for demonstration
 def insert_fake_data():
     if not sellers:
         sellers['Shaurya'] = []
@@ -94,7 +86,7 @@ def insert_fake_data():
     if not products:
         import random
         for seller in ['Shaurya', 'Rehan', 'Sara']:
-            for i in range(3):  # 3 products each
+            for i in range(3):
                 p_id = str(uuid.uuid4())
                 p_type = ['Rose', 'Musk', 'Oudh'][i % 3]
                 prod = {
@@ -105,7 +97,7 @@ def insert_fake_data():
                     'sold': str(random.randint(5, 30)),
                     'type': p_type,
                     'unit': 'ml',
-                    'image': '/static/sample_perfume.jpg',  # placeholder path
+                    'image': '/static/sample_perfume.jpg',
                     'seller': seller,
                     'description': f'A wonderful {p_type.lower()} scent with lasting aroma.'
                 }
@@ -169,11 +161,30 @@ def forgot_password():
         email = request.form['email']
         for username, user in users.items():
             if user.get('email') == email:
-                send_email(email, f"Hi {username}, your password reset link: example.com/reset/{username}")
+                send_email(email, f"Hi {username}, your password reset link: /reset_password?username={username}")
                 flash('Password reset instructions sent to your email.', 'info')
                 return redirect('/login')
         flash('Email not found!', 'danger')
     return render_template('forgot_password.html')
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        username = request.form['username']
+        new_password = request.form['new_password']
+        if username in users:
+            users[username]['password'] = generate_password_hash(new_password)
+            flash('Password reset successfully! Please login.', 'success')
+            return redirect('/login')
+        else:
+            flash('Invalid user.', 'danger')
+            return redirect('/forgot_password')
+    else:
+        username = request.args.get('username', '')
+        return render_template('reset_password.html', username=username)
+
+# Everything else stays the same...
+
 
 @app.route('/logout')
 def logout():

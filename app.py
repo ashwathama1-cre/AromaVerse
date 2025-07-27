@@ -168,20 +168,6 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
-def reset_password():
-    if request.method == 'POST':
-        username = request.form['username']
-        new_password = request.form['new_password']
-        if username in users:
-            users[username]['password'] = generate_password_hash(new_password)
-            flash('Password reset successfully! Please login.', 'success')
-            return redirect('/login')
-        else:
-            flash('Invalid user.', 'danger')
-            return redirect('/forgot_password')
-    else:
-        username = request.args.get('username', '')
-        return render_template('reset_password.html', username=username)
 
 # Everything else stays the same...
 
@@ -451,6 +437,10 @@ def product_gallery():
 
     return render_template('product_gallery.html', products=all_products)
 
+# ----------------- 404 Error Handler -----------------
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
 
 
 if __name__ == '__main__':

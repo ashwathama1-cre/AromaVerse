@@ -260,12 +260,11 @@ def add_user():
             db.session.commit()
 
             # Add to sellers or carts dict (used for app logic)
-            if role == 'seller':
-                sellers[username] = []
-            if role == 'buyer':
-                carts[username] = []
-
-            flash('User added successfully!', 'success')
+            if role == 'seller'or role=='buyer':
+                
+                    # No need to touch sellers/carts dict
+                flash(f"{role.capitalize()} created!", 'success')
+            
     return render_template('add_user.html')
 
 
@@ -343,41 +342,35 @@ def delete_product(id):
 @role_required('seller')
 def edit_product(id):
     username = session['username']
-    seller_products = sellers.get(username, [])
-    for product in seller_products:
-        if product['id'] == id:
-            if request.method == 'POST':
-                product['name'] = request.form['name']
-                product['price'] = request.form['price']
-                product['quantity'] = request.form['quantity']
-                product['type'] = request.form['type']
-                product['unit'] = request.form['unit']
-                product['description'] = request.form.get('description', product.get('description',''))
-                image = request.files.get('image')
-                if image and allowed_file(image.filename):
-                    filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    image.save(filepath)
-                    product['image'] = f'/static/uploads/{filename}'
-                flash('Product updated!', 'success')
-                return redirect('/seller_dashboard')
-            return render_template('edit_product.html', product=product)
-    flash('Product not found', 'danger')
-    return redirect('/seller_dashboard')
+    product = Product.query.filter_by(id=id, seller_username=username).first()
+    if not product:
+        flash("Product not found or unauthorized", "danger")
+        return redirect('/seller_dashboard')
 
-@app.route('/product/<id>')
-@login_required
-def product_detail(id):
-    for product_list in sellers.values():
-        for p in product_list:
-            if p['id'] == id:
-                return render_template('product_detail.html', product=p)
-    flash('Product not found', 'danger')
-    return redirect('/buyer_dashboard')
+    if request.method == 'POST':
+        product.name = request.form['name']
+        product.price = float(request.form['price'])
+        product.quantity = int(request.form['quantity'])
+        product.type = request.form['type']
+        product.unit = request.form['unit']
+        product.description = request.form.get('description', product.description)
 
-@app.route('/buyer_dashboard')
-@login_required
-@role_required('buyer')
+        image = request.files.get('image')
+        if image and allowed_file(image.filename):
+            filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image.save(filepath)
+            product.image = f'/static/uploads/{filename}'
+
+        db.session.commit()
+        flash("Product updated!", "success")
+        return redirect('/seller_dashboard')
+
+    return render_template('edit_product.html', product=product)
+
+
+    # No need to touch sellers/carts dict
+    flash(f"{role.capitalize()} created!", 'success')
 
 
 def buyer_dashboard():
@@ -424,14 +417,14 @@ def cart():
     return render_template("cart.html", cart_items=items, total_price=total_price)
 
 
+@app.route('/view_cart')
 @login_required
 @role_required('buyer')
 def view_cart():
     username = session['username']
-    user_cart = carts.get(username, [])
-    return render_template('cart.html', products=user_cart)
-
-
+    cart_items = CartItem.query.filter_by(buyer_username=username).all()
+    products = [Product.query.get(item.product_id) for item in cart_items]
+    return render_template('cart.html', cart_items=products)
 
 
 
@@ -439,27 +432,32 @@ def view_cart():
 @login_required
 @role_required('admin')
 def admin_dashboard():
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
+    all_products = Product.query.all()
+    all_sellers = User.query.filter_by(role='seller').all()
 
-    total_qty, total_sold, total_remaining = calculate_stock_sold(all_products)
-    total_revenue = calculate_revenue(all_products)
-    seller_counts = seller_product_counts()
+    total_qty = sum(p.quantity + p.sold for p in all_products)
+    total_sold = sum(p.sold for p in all_products)
+    total_remaining = sum(p.quantity for p in all_products)
+    total_revenue = sum(p.sold * p.price for p in all_products)
+
+    seller_data = [{
+        'seller': seller.username,
+        'product_count': Product.query.filter_by(seller_username=seller.username).count()
+    } for seller in all_sellers]
 
     type_counts = {}
     for p in all_products:
-        t = p['type']
-        type_counts[t] = type_counts.get(t, 0) + 1
+        type_counts[p.type] = type_counts.get(p.type, 0) + 1
 
     return render_template('admin_dashboard.html',
                            total_revenue=total_revenue,
                            total_products=len(all_products),
                            total_sold=total_sold,
-                           total_sellers=len(seller_counts),
-                           seller_data=seller_counts,
+                           total_sellers=len(seller_data),
+                           seller_data=seller_data,
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
+
 #new
 @app.route('/product_charts')
 @login_required
@@ -538,14 +536,9 @@ def reset_password():
 @login_required
 @role_required('admin')
 def product_gallery():
-    # Gather all products for display
-    all_products = []
-    for prod_list in sellers.values():
-        all_products.extend(prod_list)
-
-    # Optionally add filtering/sorting here
-
+    all_products = Product.query.all()
     return render_template('product_gallery.html', products=all_products)
+
 
 # ----------------- 404 Error Handler -----------------
 @app.errorhandler(404)

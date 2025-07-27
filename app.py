@@ -351,10 +351,15 @@ def add_to_cart(id):
             break
     return redirect('/cart')
 
+
 @app.route("/cart")
+
 def cart():
-    cart_items = session.get("cart", {})
-    return render_template("cart.html", cart_items=cart_items)
+    username = session['username']
+    cart_items = carts.get(username, [])
+    total_price = sum(float(item['price']) for item in cart_items)
+    return render_template("cart.html", cart_items=cart_items, total_price=total_price)
+
 
 @login_required
 @role_required('buyer')

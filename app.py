@@ -479,15 +479,7 @@ def page_not_found(e):
 @app.route('/add_to_cart/<id>')
 @login_required
 @role_required('buyer')
-def add_to_cart(id):
-    username = session['username']
-    for product in products:
-        if product['id'] == id:
-            carts.setdefault(username, [])
-            carts[username].append(product)
-            flash(f"{product['name']} added to cart!", "success")
-            break
-    return redirect('/cart')
+
 
 
 @app.route('/cart')

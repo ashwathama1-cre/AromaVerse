@@ -5,27 +5,62 @@ from functools import wraps
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
 from datetime import timedelta
+from flask_sqlalchemy import SQLAlchemy
 import os
 import uuid
 
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
+
+# Upload folder
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Session configuration
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 app.permanent_session_lifetime = timedelta(minutes=30)
+
+# Allowed file extensions
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+# SQLAlchemy setup
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# CSRF protection
 csrf = CSRFProtect(app)
+
+# ------------------- Models -------------------
+
+class Product(db.Model):
+    id = db.Column(db.String(100), primary_key=True)
+    name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    quantity = db.Column(db.Integer)
+    sold = db.Column(db.Integer, default=0)
+    type = db.Column(db.String(50))
+    unit = db.Column(db.String(20))
+    image = db.Column(db.String(200))
+    description = db.Column(db.Text)
+    seller_username = db.Column(db.String(100), db.ForeignKey('user.username'))
+
+class CartItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    buyer_username = db.Column(db.String(100), db.ForeignKey('user.username'))
+    product_id = db.Column(db.String(100), db.ForeignKey('product.id'))
+
+with app.app_context():
+    db.create_all()
+
+# ------------------- Helpers -------------------
 
 products = []
 sellers = {}
-users = {
-    'admin': {'password': generate_password_hash('1234'), 'role': 'admin', 'email': 'admin@example.com'}
-}
 carts = {}
 
 def allowed_file(filename):
@@ -66,22 +101,14 @@ def calculate_stock_sold(products_list):
     return total_qty, total_sold, total_remaining
 
 def calculate_revenue(products_list):
-    total_revenue = 0
-    for p in products_list:
-        sold = int(p.get('sold', 0))
-        price = float(p['price'])
-        total_revenue += sold * price
-    return total_revenue
+    return sum(int(p.get('sold', 0)) * float(p['price']) for p in products_list)
 
 def seller_product_counts():
-    result = []
-    for seller_name, prod_list in sellers.items():
-        result.append({
-            'seller': seller_name,
-            'email': users.get(seller_name, {}).get('email', 'N/A'),
-            'product_count': len(prod_list)
-        })
-    return result
+    return [{
+        'seller': name,
+        'email': '',  # Removed in-memory users
+        'product_count': len(prod_list)
+    } for name, prod_list in sellers.items()]
 
 def insert_fake_data():
     if not sellers:
@@ -111,6 +138,8 @@ def insert_fake_data():
 
 insert_fake_data()
 
+# ------------------- Routes -------------------
+
 @app.route('/')
 def home():
     return redirect('/login')
@@ -120,43 +149,36 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = users.get(username)
-        if user and check_password_hash(user['password'], password):
-            session['username'] = username
-            session['role'] = user['role']
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            session['username'] = user.username
+            session['role'] = user.role
             session.permanent = True
-            if user['role'] == 'admin':
+            if user.role == 'admin':
                 return redirect('/admin_dashboard')
-            elif user['role'] == 'seller':
+            elif user.role == 'seller':
                 return redirect('/seller_dashboard')
             else:
                 carts.setdefault(username, [])
                 return redirect('/buyer_dashboard')
-        else:
-            flash('Invalid credentials', 'danger')
+        flash('Invalid credentials', 'danger')
     return render_template('login.html')
 
-# (The rest of the code remains the same as you've provided)
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
-        email = request.form['email']
         password = request.form['password']
         confirm = request.form['confirm_password']
 
-        if username in users:
+        if User.query.filter_by(username=username).first():
             flash('Username already exists!', 'danger')
-        elif any(email == user.get('email') for user in users.values()):
-            flash('Email already registered!', 'danger')
         elif password != confirm:
             flash('Passwords do not match!', 'warning')
         else:
-            users[username] = {
-                'password': generate_password_hash(password),
-                'email': email,
-                'role': 'buyer'
-            }
+            new_user = User(username=username, password=generate_password_hash(password), role='buyer')
+            db.session.add(new_user)
+            db.session.commit()
             carts[username] = []
             flash('Account created! Please login.', 'success')
             return redirect('/login')
@@ -165,19 +187,33 @@ def register():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form['email']
-        for username, user in users.items():
-            if user.get('email') == email:
-                send_email(email, f"Hi {username}, your password reset link: /reset_password?username={username}")
-                flash('Password reset instructions sent to your email.', 'info')
-                return redirect('/login')
-        flash('Email not found!', 'danger')
+        username = request.form['username']
+        user = User.query.filter_by(username=username).first()
+        if user:
+            send_email(user.username, f"Reset link: /reset_password?username={user.username}")
+            flash('Password reset link sent.', 'info')
+            return redirect('/login')
+        flash('Username not found!', 'danger')
     return render_template('forgot_password.html')
 
-@app.route('/reset_password', methods=['GET', 'POST'])
-
-# Everything else stays the same...
-
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current = request.form['current']
+        new = request.form['new']
+        confirm = request.form['confirm']
+        user = User.query.filter_by(username=session['username']).first()
+        if user and check_password_hash(user.password, current):
+            if new == confirm:
+                user.password = generate_password_hash(new)
+                db.session.commit()
+                flash('Password changed!', 'success')
+            else:
+                flash('New passwords do not match!', 'danger')
+        else:
+            flash('Current password incorrect!', 'danger')
+    return render_template('change_password.html')
 
 @app.route('/logout')
 def logout():
@@ -193,38 +229,28 @@ def add_user():
         username = request.form['username']
         password = request.form['password']
         role = request.form['role']
-        if username in users:
+
+        if User.query.filter_by(username=username).first():
             flash('User already exists!', 'danger')
         else:
-            users[username] = {
-                'password': generate_password_hash(password),
-                'role': role,
-                'email': request.form.get('email', '')
-            }
+            new_user = User(
+                username=username,
+                password=generate_password_hash(password),
+                role=role
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            # Add to sellers or carts dict (used for app logic)
             if role == 'seller':
                 sellers[username] = []
             if role == 'buyer':
                 carts[username] = []
+
             flash('User added successfully!', 'success')
     return render_template('add_user.html')
 
-@app.route('/change_password', methods=['GET', 'POST'])
-@login_required
-def change_password():
-    if request.method == 'POST':
-        current = request.form['current']
-        new = request.form['new']
-        confirm = request.form['confirm']
-        username = session['username']
-        if check_password_hash(users[username]['password'], current):
-            if new == confirm:
-                users[username]['password'] = generate_password_hash(new)
-                flash('Password changed successfully!', 'success')
-            else:
-                flash('New passwords do not match!', 'danger')
-        else:
-            flash('Current password is incorrect!', 'danger')
-    return render_template('change_password.html')
+
 
 @app.route('/seller_dashboard')
 @login_required
@@ -353,6 +379,9 @@ def add_to_cart(id):
 
 
 @app.route("/cart")
+@login_required
+@role_required('buyer')
+
 
 def cart():
     username = session['username']
@@ -451,13 +480,16 @@ def seller_overview():
     seller_counts = seller_product_counts()
     return render_template('seller_overview.html', seller_data=seller_counts)
 
+
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
         username = request.form['username']
         new_password = request.form['new_password']
-        if username in users:
-            users[username]['password'] = generate_password_hash(new_password)
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.password = generate_password_hash(new_password)
+            db.session.commit()
             flash('Password reset successfully! Please login.', 'success')
             return redirect('/login')
         else:
@@ -466,6 +498,7 @@ def reset_password():
     else:
         username = request.args.get('username', '')
         return render_template('reset_password.html', username=username)
+
 
 @app.route('/product_gallery')
 @login_required

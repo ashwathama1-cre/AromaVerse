@@ -18,6 +18,16 @@
   }
 </style>
 
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="alert alert-success text-center">
+      {% for message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
 <div class="container cart-container mt-4">
   <h2 class="mb-4 text-center">🛒 Your Shopping Cart</h2>
 
@@ -45,6 +55,12 @@
     <div class="mt-4 text-end">
       <h4>🧾 Total: ₹{{ total_price }}</h4>
       <a href="/checkout" class="btn btn-success btn-lg mt-2">💳 Proceed to Checkout</a>
+    </div>
+
+    <div class="text-start mt-4">
+      <a href="/buyer_dashboard" class="btn btn-outline-primary">
+        ← Back to Products
+      </a>
     </div>
   {% else %}
     <div class="alert alert-warning text-center">

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Seller Profile 👤 | Itra Store{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg rounded-4">
+        <div class="card-body text-center">
+          <h2 class="mb-3 text-primary">👨‍💼 Seller Profile</h2>
+          <h4 class="card-title mb-2">{{ seller.name }}</h4>
+          <p class="card-text mb-1">📧 <strong>Email:</strong> {{ seller.email }}</p>
+          <p class="card-text mb-1">📦 <strong>Products Listed:</strong> {{ product_count }}</p>
+          <p class="card-text mb-3">📍 <strong>Location:</strong> {{ seller.location or 'N/A' }}</p>
+          <a href="/seller_dashboard" class="btn btn-outline-primary px-4">
+            <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

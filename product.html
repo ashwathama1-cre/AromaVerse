@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Itra Products 🧴{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="text-center mb-4">🛒 Browse Itra Collection</h2>
+
+  <!-- 🔍 Filters Section -->
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <input type="text" name="search" value="{{ request.args.get('search', '') | e }}" class="form-control" placeholder="🔍 Search by name or type..." />
+    </div>
+    <div class="col-md-3">
+      <select name="type" class="form-select">
+        <option value="">All Types</option>
+        {% for t in types %}
+        <option value="{{ t }}" {% if request.args.get('type') == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="sort" class="form-select">
+        <option value="">Sort by Price</option>
+        <option value="low" {% if request.args.get('sort') == 'low' %}selected{% endif %}>⬇️ Low to High</option>
+        <option value="high" {% if request.args.get('sort') == 'high' %}selected{% endif %}>⬆️ High to Low</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button type="submit" class="btn btn-primary">
+        Apply Filters
+      </button>
+    </div>
+  </form>
+
+  <!-- 🧴 Product Cards -->
+  <div class="row">
+    {% if products %}
+      {% for p in products %}
+      <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+          <img src="{{ url_for('static', filename='images/' + p.image) }}" class="card-img-top" alt="{{ p.name }}" style="height: 250px; object-fit: cover;">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ p.name }}</h5>
+            <p class="card-text mb-1">🌸 Type: <strong>{{ p.type }}</strong></p>
+            <p class="card-text mb-1">💰 Price: ₹{{ p.price }}</p>
+            <p class="card-text mb-2">📦 Unit: {{ p.unit }}</p>
+            <a href="{{ url_for('buy', id=p.id) }}" class="btn btn-success mt-auto">
+              Buy Now 🛍️
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-info text-center">
+          No products found matching your filters.
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

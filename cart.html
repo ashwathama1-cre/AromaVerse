@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Your Cart | Itra Store 🛒{% endblock %}
+
+{% block content %}
+<style>
+  .cart-container {
+    max-width: 1000px;
+    margin: auto;
+  }
+  .product-img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+  }
+  .delete-btn {
+    cursor: pointer;
+  }
+</style>
+
+<div class="container cart-container mt-4">
+  <h2 class="mb-4 text-center">🛒 Your Shopping Cart</h2>
+
+  {% if cart_items %}
+    <div class="list-group">
+      {% for item in cart_items %}
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center">
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-img me-3 rounded" />
+            <div>
+              <h5>{{ item.name }} ({{ item.unit }})</h5>
+              <p class="mb-1">💰 <strong>₹{{ item.price }}</strong></p>
+              <small>📦 Quantity: {{ item.quantity }}</small>
+            </div>
+          </div>
+          <div class="text-end">
+            <form action="/remove_from_cart/{{ item.id }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this item?');">
+              <button type="submit" class="btn btn-sm btn-danger" title="Remove from Cart">❌ Remove</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4 text-end">
+      <h4>🧾 Total: ₹{{ total_price }}</h4>
+      <a href="/checkout" class="btn btn-success btn-lg mt-2">💳 Proceed to Checkout</a>
+    </div>
+  {% else %}
+    <div class="alert alert-warning text-center">
+      😞 Your cart is empty. Browse <a href="/buyer_dashboard">products</a> to add items.
+    </div>
+  {% endif %}
+</div>
+
+<footer class="text-center mt-5 mb-3">
+  <hr />
+  <p>© 2025 Itra Store 🌿 | Need help? <a href="/help">Visit FAQ</a></p>
+</footer>
+{% endblock %}

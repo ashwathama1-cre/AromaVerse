@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Add User | Itra Store{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center mb-4">👥 Add New User</h2>
+  <form action="/add_user" method="post" class="mx-auto" style="max-width: 400px;">
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Role</label>
+      <select name="role" class="form-select" required>
+        <option value="admin">Admin</option>
+        <option value="seller">Seller</option>
+        <option value="buyer">Buyer</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-success w-100 fs-5">➕ Add User</button>
+  </form>
+</div>
+{% endblock %}

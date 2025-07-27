@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Sellers Overview | Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📋 Registered Sellers</h2>
+  <table class="table table-bordered table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Seller Username</th>
+        <th>Total Products</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for idx, (seller, count) in enumerate(seller_counts.items(), 1) %}
+      <tr>
+        <td>{{ idx }}</td>
+        <td>{{ seller }}</td>
+        <td>{{ count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Product Distribution Chart | Itra Store{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <h2>📊 Product Distribution</h2>
+  <canvas id="typeChart" width="400" height="300"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('typeChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: {{ labels|tojson }},
+      datasets: [{
+        label: 'Product Type',
+        data: {{ data|tojson }},
+        backgroundColor: ['#ff6384','#36a2eb','#cc65fe','#ffce56','#4bc0c0']
+      }]
+    },
+    options: {
+      responsive: true
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Seller Overview | Itra Store{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>👨‍💼 Sellers & Product Counts</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Seller Name</th>
+        <th>Product Count</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sellers %}
+      <tr>
+        <td>{{ s.username }}</td>
+        <td>{{ s.product_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

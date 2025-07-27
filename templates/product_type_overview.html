@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Product Type Overview | Itra Store{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">📂 Product Type Overview</h2>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+  {% if types %}
+    {% for type in types %}
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <img src="{{ type.image }}" class="card-img-top" alt="{{ type.name }}" style="height: 200px; object-fit: cover;">
+          <div class="card-body text-center">
+            <h5 class="card-title">{{ type.name }}</h5>
+            <p class="card-text">🔢 {{ type.count }} Products</p>
+            <a href="{{ url_for('buyer_dashboard', filter=type.name) }}" class="btn btn-outline-primary">View {{ type.name }}</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-center">No product types available.</p>
+  {% endif %}
+</div>
+{% endblock %}

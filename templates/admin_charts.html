@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Sales Charts | Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📊 Product Sales Overview</h2>
+  <canvas id="salesChart" width="400" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  const salesChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: {{ labels | safe }},
+      datasets: [{
+        label: 'Sales Distribution',
+        data: {{ data | safe }},
+        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56', '#2ecc71'],
+      }]
+    }
+  });
+</script>
+{% endblock %}

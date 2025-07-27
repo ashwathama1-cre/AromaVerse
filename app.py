@@ -351,7 +351,11 @@ def add_to_cart(id):
             break
     return redirect('/cart')
 
-@app.route('/cart')
+@app.route("/cart")
+def cart():
+    cart_items = session.get("cart", {})
+    return render_template("cart.html", cart_items=cart_items)
+
 @login_required
 @role_required('buyer')
 def view_cart():

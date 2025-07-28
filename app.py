@@ -127,32 +127,33 @@ def insert_fake_data():
         seller1 = User(username='seller1', password=generate_password_hash('1234'), role='seller')
         db.session.add(seller1)
         db.session.commit()
-if not Product.query.first():
-    p1 = Product(
-        id=str(uuid.uuid4()),
-        name='Rose Itra',
-        type='Rose',
-        quantity=100,
-        unit='ml',
-        price=150.0,
-        seller_id=seller1.id,  # ✅ Correct FK
-        image='rose_itra.jpg',
-        description='Classic rose fragrance.'
-    )
-    p2 = Product(
-        id=str(uuid.uuid4()),
-        name='Musk Itra',
-        type='Musk',
-        quantity=80,
-        unit='ml',
-        price=180.0,
-        seller_id=seller1.id,  # ✅ Correct FK
-        image='musk_itra.jpg',
-        description='Bold musk fragrance.'
-    )
 
-        db.session.add_all([p1, p2])
-        db.session.commit()
+        if not Product.query.first():
+            p1 = Product(
+                id=str(uuid.uuid4()),
+                name='Rose Itra',
+                type='Rose',
+                quantity=100,
+                unit='ml',
+                price=150.0,
+                seller_id=seller1.id,
+                image='rose_itra.jpg',
+                description='Classic rose fragrance.'
+            )
+            p2 = Product(
+                id=str(uuid.uuid4()),
+                name='Musk Itra',
+                type='Musk',
+                quantity=80,
+                unit='ml',
+                price=180.0,
+                seller_id=seller1.id,
+                image='musk_itra.jpg',
+                description='Bold musk fragrance.'
+            )
+
+            db.session.add_all([p1, p2])
+            db.session.commit()
 
 # ------------------ THEN call it inside app context ------------------
 with app.app_context():
@@ -308,7 +309,13 @@ def add_product():
         flash('❌ Invalid image file!', 'danger')
         return redirect('/seller_dashboard')
 
-    # Save to database using SQLAlchemy
+    # ✅ Get seller ID from session username
+    seller = User.query.filter_by(username=session['username']).first()
+    if not seller:
+        flash('❌ Seller not found.', 'danger')
+        return redirect('/seller_dashboard')
+
+    # ✅ Create new Product with correct seller_id
     new_product = Product(
         id=str(uuid.uuid4()),
         name=name,
@@ -318,7 +325,7 @@ def add_product():
         type=type_,
         unit=unit,
         image=image_path,
-        seller_username=session['username'],
+        seller_id=seller.id,
         description=description
     )
 

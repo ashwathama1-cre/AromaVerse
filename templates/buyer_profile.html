@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}My Purchases{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h3>🛒 My Purchase History</h3>
+  <ul class="list-group mt-3">
+    {% for p in purchases %}
+      <li class="list-group-item d-flex justify-content-between">
+        <span>{{ p.product_name }} (₹{{ p.price }})</span>
+        <small>{{ p.timestamp.strftime('%d %b %Y, %I:%M %p') }}</small>
+      </li>
+    {% else %}
+      <li class="list-group-item text-muted">No purchases yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

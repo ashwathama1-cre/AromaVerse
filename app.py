@@ -49,10 +49,9 @@ logging.basicConfig(
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # admin, buyer, seller
-    revenue = db.Column(db.Float, default=0.0)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    role = db.Column(db.String(50), nullable=False)
 
 class Product(db.Model):
     id = db.Column(db.String(36), primary_key=True)
@@ -147,15 +146,17 @@ def insert_fake_data():
 # ------------------ App Context Init ------------------
 
 with app.app_context():
-    db.create_all()
+    if os.path.exists("users.db"):
+        os.remove("users.db")  # 🧨 TEMPORARY - Deletes old DB
 
+    db.create_all()
     if not User.query.filter_by(username='admin').first():
-        admin_user = User(username='admin', password=generate_password_hash('1234'), role='admin')
-        db.session.add(admin_user)
+        hashed_pw = generate_password_hash('1234')
+        admin = User(username='admin', password=hashed_pw, role='admin')
+        db.session.add(admin)
         db.session.commit()
-        print("✅ Admin user created (username=admin, password=1234)")
-    else:
-        print("✅ Admin already exists.")
+        print("✅ Admin user created")
+
 
     insert_fake_data()
 

@@ -4,7 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from dotenv import load_dotenv
 from flask_wtf import CSRFProtect
-from datetime import datetime
+from datetime import datetime, timedelta
+
 from flask_sqlalchemy import SQLAlchemy
 import os
 import uuid

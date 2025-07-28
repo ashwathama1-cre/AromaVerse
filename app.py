@@ -162,6 +162,21 @@ with app.app_context():
 
 # ------------------ Routes ------------------
 
+
+@app.before_first_request
+def create_admin_if_not_exists():
+    db.create_all()  # Ensure all tables are created
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        try:
+            hashed_password = generate_password_hash('1234')
+            new_admin = User(username='admin', password=hashed_password, role='admin')
+            db.session.add(new_admin)
+            db.session.commit()
+            print("✅ Admin user created with username='admin' and password='1234'")
+        except Exception as e:
+            logging.error(f"Failed to create admin user: {e}")
+# route
 @app.route('/')
 def home():
     return redirect('/login')
@@ -169,26 +184,26 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
-            session['username'] = user.username
+            session['username'] = username
             session['role'] = user.role
             session.permanent = True
-            flash(f"Welcome back, {user.username}", "success")
 
             if user.role == 'admin':
-                return redirect('/admin_dashboard')
+                return redirect(url_for('admin_dashboard'))
             elif user.role == 'seller':
-                return redirect('/seller_dashboard')
+                return redirect(url_for('seller_dashboard'))
             else:
-                return redirect('/buyer_dashboard')
+                return redirect(url_for('buyer_dashboard'))
         else:
-            flash("❌ Invalid credentials", "danger")
-
+            flash('Invalid credentials', 'danger')
+            return redirect(url_for('login'))
     return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():
@@ -556,34 +571,34 @@ def cart():
 @app.route('/admin_dashboard')
 @login_required
 @role_required('admin')
+
 def admin_dashboard():
-    all_products = Product.query.all()
-    all_sellers = User.query.filter_by(role='seller').all()
+    # Get values from DB
+    total_revenue = db.session.query(func.sum(Order.total_amount)).scalar() or 0
+    total_products = Product.query.count()
+    total_sold = db.session.query(func.sum(Product.sold_quantity)).scalar() or 0
+    total_sellers = Seller.query.count()
 
-    total_qty = sum((p.quantity or 0) + (p.sold or 0) for p in all_products)
-    total_sold = sum(p.sold or 0 for p in all_products)
-    total_remaining = sum(p.quantity or 0 for p in all_products)
-    total_revenue = sum((p.sold or 0) * (p.price or 0) for p in all_products)
+    # Product pie chart data
+    type_counts = db.session.query(Product.type, func.count(Product.id)).group_by(Product.type).all()
+    chart_labels = [t[0] for t in type_counts]
+    chart_data = [t[1] for t in type_counts]
 
-    seller_data = [{
-        'seller': seller.username,
-        'product_count': Product.query.filter_by(seller_id=seller.id).count()
-    } for seller in all_sellers]
+    # Seller overview
+    seller_data = db.session.query(
+        Seller.name.label("seller"),
+        Seller.email,
+        func.count(Product.id).label("product_count")
+    ).join(Product, Product.seller_id == Seller.id).group_by(Seller.id).all()
 
-    type_counts = {}
-    for p in all_products:
-        p_type = p.type or 'Unknown'
-        type_counts[p_type] = type_counts.get(p_type, 0) + 1
-
-    return render_template('admin_dashboard.html',
+    return render_template("admin_dashboard.html",
                            total_revenue=total_revenue,
-                           total_products=len(all_products),
+                           total_products=total_products,
                            total_sold=total_sold,
-                           total_sellers=len(seller_data),
-                           seller_data=seller_data,
-                           chart_labels=list(type_counts.keys()),
-                           chart_data=list(type_counts.values()))
-
+                           total_sellers=total_sellers,
+                           chart_labels=chart_labels,
+                           chart_data=chart_data,
+                           seller_data=seller_data)
 
 
 @app.route('/product_charts')

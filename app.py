@@ -320,24 +320,19 @@ def buy_product(product_id):
 
 
 
-
-@app.route('/seller_dashboard')
+@app.route("/seller_dashboard")
 @login_required
 @role_required('seller')
 def seller_dashboard():
-    username = session['username']
-    seller = User.query.filter_by(username=username).first()
+    seller_id = session['user_id']
+    products = Product.query.filter_by(seller_id=seller_id).all()
 
-    if not seller:
-        flash("Seller not found", "danger")
-        return redirect('/login')
+    notifications = []
+    for p in products:
+        if p.sold > 0:
+            notifications.append(f'Your product "{p.name}" was sold ({p.sold} units).')
 
-    products = Product.query.filter_by(seller_username=username).all()
-    scent_filter = request.args.get('filter')
-    filtered = filter_products_by_type(products, scent_filter)
-
-    return render_template('seller_dashboard.html', products=filtered, scent_filter=scent_filter)
-
+    return render_template("seller_dashboard.html", products=products, notifications=notifications)
 
 @app.route('/add_product', methods=['POST'])
 @login_required

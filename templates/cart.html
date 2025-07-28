@@ -13,8 +13,10 @@
     height: 100px;
     object-fit: cover;
   }
-  .delete-btn {
-    cursor: pointer;
+  .quantity-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 </style>
 
@@ -34,18 +36,27 @@
   {% if cart_items %}
     <div class="list-group">
       {% for item in cart_items %}
-        <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
           <div class="d-flex align-items-center">
             <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-img me-3 rounded shadow-sm" />
             <div>
               <h5>{{ item.name }} ({{ item.unit }})</h5>
-              <p class="mb-1">💰 <strong>₹{{ item.price }}</strong></p>
-              <small>📦 Quantity: {{ item.quantity }}</small>
+              <p class="mb-1">💰 <strong>₹{{ item.price }}</strong> x {{ item.quantity }} = ₹{{ item.price * item.quantity }}</p>
             </div>
           </div>
-          <div class="text-end">
-            <form action="/remove_from_cart/{{ item.id }}" method="POST" onsubmit="return confirm('Are you sure you want to remove this item?');">
-              <button type="submit" class="btn btn-sm btn-danger" title="Remove from Cart">❌ Remove</button>
+
+          <div class="d-flex flex-column align-items-end">
+            <form action="/update_quantity/{{ item.id }}" method="POST" class="mb-2 d-flex gap-2">
+              <input type="hidden" name="product_id" value="{{ item.id }}">
+              <div class="quantity-box">
+                <button type="submit" name="action" value="decrease" class="btn btn-outline-secondary btn-sm">−</button>
+                <span class="mx-2">{{ item.quantity }}</span>
+                <button type="submit" name="action" value="increase" class="btn btn-outline-secondary btn-sm">+</button>
+              </div>
+            </form>
+
+            <form action="/remove_from_cart/{{ item.id }}" method="POST" onsubmit="return confirm('Remove this item from cart?');">
+              <button type="submit" class="btn btn-danger btn-sm">❌ Remove</button>
             </form>
           </div>
         </div>
@@ -53,19 +64,13 @@
     </div>
 
     <div class="mt-4 text-end">
-      <h4>🧾 Total: ₹{{ total_price }}</h4>
+      <h4>🧾 Total Amount: <strong>₹{{ total_price }}</strong></h4>
       <a href="/checkout" class="btn btn-success btn-lg mt-2">💳 Proceed to Checkout</a>
     </div>
 
     <div class="text-start mt-4">
-      <a href="/buyer_dashboard" class="btn btn-outline-primary">
-        ← Back to Products
-      </a>
+      <a href="/buyer_dashboard" class="btn btn-outline-primary">← Back to Products</a>
     </div>
-  <a href="{{ url_for('remove_from_cart', id=item.product.id) }}" class="btn btn-danger btn-sm">
-    ➖ Remove
-</a>
-
   {% else %}
     <div class="alert alert-warning text-center">
       😞 Your cart is empty. Browse <a href="/buyer_dashboard">products</a> to add items.

@@ -61,9 +61,13 @@ class Product(db.Model):
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    buyer_username = db.Column(db.String(80))  # You must have this (or rename to `username`)
-    product_id = db.Column(db.String(36), db.ForeignKey('product.id'))
-    quantity = db.Column(db.Integer, default=1)  # ✅ Fix: Add default
+    buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))  # ✅ Proper FK to User
+    product_id = db.Column(db.String(36), db.ForeignKey('product.id'), nullable=False)  # ✅ Proper FK to Product
+    quantity = db.Column(db.Integer, default=1)
+
+    # Relationships
+    product = db.relationship('Product', backref='cart_items', lazy=True)
+
 
 
 

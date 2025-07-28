@@ -83,10 +83,12 @@ class CartItem(db.Model):
 
 class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
-    product_name = db.Column(db.String(100))
+    buyer_username = db.Column(db.String(100), db.ForeignKey('user.username'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product_name = db.Column(db.String(200))
     price = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 
@@ -287,7 +289,7 @@ def add_user():
 
 from datetime import datetime
 
-@app.route('/buy/<int:product_id>')
+@@app.route('/buy/<int:product_id>')
 @login_required
 @role_required('buyer')
 def buy_product(product_id):
@@ -297,6 +299,7 @@ def buy_product(product_id):
         flash("Sorry, this product is out of stock.", "danger")
         return redirect('/buyer_dashboard')
 
+    # Update product quantity and sold count
     product.quantity -= 1
     product.sold += 1
 
@@ -305,18 +308,28 @@ def buy_product(product_id):
     if seller:
         seller.revenue = (seller.revenue or 0) + product.price
 
-    # Log purchase in DB
+    # ✅ Record this purchase in buyer’s purchase history
     purchase = Purchase(
         buyer_username=session['username'],
+        product_id=product.id,
         product_name=product.name,
-        price=product.price,
-        timestamp=datetime.now()
+        price=product.price
     )
     db.session.add(purchase)
+
+    # Commit all changes
     db.session.commit()
 
     flash("Product purchased successfully!", "success")
-    return redirect('/buyer_profile')
+    return redirect('/buyer_dashboard')  # Or /cart if using cart system
+
+
+@app.route('/buyer_profile')
+@login_required
+@role_required('buyer')
+def buyer_profile():
+    purchases = Purchase.query.filter_by(buyer_username=session['username']).order_by(Purchase.timestamp.desc()).all()
+    return render_template("buyer_profile.html", purchases=purchases)
 
 
 
@@ -632,14 +645,6 @@ def remove_from_cart(id):
 def product_gallery():
     all_products = Product.query.all()
     return render_template('product_gallery.html', products=all_products)
-
-
-@app.route('/buyer_profile')
-@login_required
-@role_required('buyer')
-def buyer_profile():
-    purchases = Purchase.query.filter_by(buyer_username=session['username']).order_by(Purchase.timestamp.desc()).all()
-    return render_template("buyer_profile.html", purchases=purchases)
 
 
 

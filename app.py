@@ -289,7 +289,7 @@ def add_user():
 
 from datetime import datetime
 
-@@app.route('/buy/<int:product_id>')
+@app.route('/buy/<int:product_id>')
 @login_required
 @role_required('buyer')
 def buy_product(product_id):

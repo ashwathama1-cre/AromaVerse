@@ -1,66 +1,58 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from functools import wraps
-from dotenv import load_dotenv
-from flask_wtf import CSRFProtect
-from datetime import datetime, timedelta
-
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
+
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from flask_wtf import CSRFProtect
+from functools import wraps
+from datetime import timedelta, datetime
+from dotenv import load_dotenv
 import os
 import uuid
 import logging
 
-# Load environment variables
+# ------------------ Load Environment Variables ------------------
 load_dotenv()
 
-# ---------------- LOGGING SETUP ----------------
+# ------------------ App Configuration ------------------
+app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY', 'mydefaultsecret')
+
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+
+ 
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False
+app.permanent_session_lifetime = timedelta(minutes=30)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+csrf = CSRFProtect(app)
+
 LOG_FILE = 'logs/error.log'
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
-
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.ERROR,
     format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 )
 
-# ----------------------------------------------
-
-app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
-
-# Upload folder
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Session configuration
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
-app.permanent_session_lifetime = timedelta(minutes=30)
-
-# Allowed file extensions
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-# SQLAlchemy setup
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-# CSRF protection
-csrf = CSRFProtect(app)
-
-# ------------------- Models -------------------
+# ------------------ MODELS ------------------
 
 class User(db.Model):
-    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), nullable=False)
-    products = db.relationship('Product', backref='seller', lazy=True)
-    cart_items = db.relationship('CartItem', backref='buyer', lazy=True)
+    role = db.Column(db.String(20), nullable=False)  # admin, buyer, seller
+    revenue = db.Column(db.Float, default=0.0)
 
 class Product(db.Model):
     id = db.Column(db.String(36), primary_key=True)
@@ -81,7 +73,6 @@ class CartItem(db.Model):
     quantity = db.Column(db.Integer, default=1)
     product = db.relationship('Product', backref='cart_items', lazy=True)
 
-
 class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     buyer_username = db.Column(db.String(100), db.ForeignKey('user.username'))
@@ -90,8 +81,7 @@ class Purchase(db.Model):
     price = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-
-
+# ------------------ Utility Functions ------------------
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -116,29 +106,14 @@ def role_required(role):
         return decorated
     return decorator
 
-def filter_products_by_type(products_list, scent_type):
-    if scent_type:
-        return [p for p in products_list if p.type.lower() == scent_type.lower()]
-    return products_list
-
 def send_email(to, message):
     print(f"[EMAIL TO: {to}] {message}")
-
-def calculate_stock_sold(products_list):
-    total_qty = sum(int(p['quantity']) + int(p.get('sold', 0)) for p in products_list)
-    total_sold = sum(int(p.get('sold', 0)) for p in products_list)
-    total_remaining = sum(int(p['quantity']) for p in products_list)
-    return total_qty, total_sold, total_remaining
-
-def calculate_revenue(products_list):
-    return sum(int(p.get('sold', 0)) * float(p['price']) for p in products_list)
-
 
 def insert_fake_data():
     try:
         if not User.query.filter_by(role='seller').first():
-            seller1 = User(username='seller1', password=generate_password_hash('1234'), role='seller')
-            db.session.add(seller1)
+            seller = User(username='seller1', password=generate_password_hash('1234'), role='seller')
+            db.session.add(seller)
             db.session.commit()
 
             if not Product.query.first():
@@ -149,7 +124,7 @@ def insert_fake_data():
                     quantity=100,
                     unit='ml',
                     price=150.0,
-                    seller_id=seller1.id,
+                    seller_id=seller.id,
                     image='rose_itra.jpg',
                     description='Classic rose fragrance.'
                 )
@@ -160,24 +135,31 @@ def insert_fake_data():
                     quantity=80,
                     unit='ml',
                     price=180.0,
-                    seller_id=seller1.id,
+                    seller_id=seller.id,
                     image='musk_itra.jpg',
                     description='Bold musk fragrance.'
                 )
-
                 db.session.add_all([p1, p2])
                 db.session.commit()
     except Exception as e:
         logging.error(f"Error inserting fake data: {str(e)}")
 
+# ------------------ App Context Init ------------------
+
 with app.app_context():
     db.create_all()
+
+    if not User.query.filter_by(username='admin').first():
+        admin_user = User(username='admin', password=generate_password_hash('1234'), role='admin')
+        db.session.add(admin_user)
+        db.session.commit()
+        print("✅ Admin user created (username=admin, password=1234)")
+    else:
+        print("✅ Admin already exists.")
+
     insert_fake_data()
 
-
-
-
-# ------------------- Routes -------------------
+# ------------------ Routes ------------------
 
 @app.route('/')
 def home():
@@ -189,19 +171,29 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
+
         if user and check_password_hash(user.password, password):
             session['username'] = user.username
             session['role'] = user.role
             session.permanent = True
+            flash(f"Welcome back, {user.username}", "success")
+
             if user.role == 'admin':
                 return redirect('/admin_dashboard')
             elif user.role == 'seller':
                 return redirect('/seller_dashboard')
             else:
-               
                 return redirect('/buyer_dashboard')
-        flash('Invalid credentials', 'danger')
+        else:
+            flash("❌ Invalid credentials", "danger")
+
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("Logged out successfully!", "info")
+    return redirect('/login')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -218,9 +210,9 @@ def register():
             new_user = User(username=username, password=generate_password_hash(password), role='buyer')
             db.session.add(new_user)
             db.session.commit()
-            
             flash('Account created! Please login.', 'success')
             return redirect('/login')
+
     return render_template('register.html')
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -243,6 +235,7 @@ def change_password():
         new = request.form['new']
         confirm = request.form['confirm']
         user = User.query.filter_by(username=session['username']).first()
+
         if user and check_password_hash(user.password, current):
             if new == confirm:
                 user.password = generate_password_hash(new)
@@ -254,11 +247,6 @@ def change_password():
             flash('Current password incorrect!', 'danger')
     return render_template('change_password.html')
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash("Logged out successfully!", "info")
-    return redirect('/login')
 
 @app.route('/add_user', methods=['GET', 'POST'])
 @login_required
@@ -270,7 +258,7 @@ def add_user():
         role = request.form['role']
 
         if User.query.filter_by(username=username).first():
-            flash('User already exists!', 'danger')
+            flash('❌ User already exists!', 'danger')
         else:
             new_user = User(
                 username=username,
@@ -280,15 +268,10 @@ def add_user():
             db.session.add(new_user)
             db.session.commit()
 
-            # Add to sellers or carts dict (used for app logic)
-            if role == 'seller'or role=='buyer':
-                
-                    # No need to touch sellers/carts dict
-                flash(f"{role.capitalize()} created!", 'success')
-            
+            flash(f"✅ {role.capitalize()} created successfully!", 'success')
+
     return render_template('add_user.html')
 
-from datetime import datetime
 
 @app.route('/buy/<int:product_id>')
 @login_required
@@ -297,7 +280,7 @@ def buy_product(product_id):
     product = Product.query.get_or_404(product_id)
 
     if product.quantity <= 0:
-        flash("Sorry, this product is out of stock.", "danger")
+        flash("❌ Sorry, this product is out of stock.", "danger")
         return redirect('/buyer_dashboard')
 
     # Update product quantity and sold count
@@ -309,20 +292,20 @@ def buy_product(product_id):
     if seller:
         seller.revenue = (seller.revenue or 0) + product.price
 
-    # ✅ Record this purchase in buyer’s purchase history
+    # Record purchase
     purchase = Purchase(
         buyer_username=session['username'],
         product_id=product.id,
         product_name=product.name,
-        price=product.price
+        price=product.price,
+        timestamp=datetime.utcnow()
     )
     db.session.add(purchase)
-
-    # Commit all changes
     db.session.commit()
 
-    flash("Product purchased successfully!", "success")
-    return redirect('/buyer_dashboard')  # Or /cart if using cart system
+    flash("✅ Product purchased successfully!", "success")
+    return redirect('/buyer_dashboard')
+
 
 @app.route('/update_quantity/<int:product_id>', methods=['POST'])
 @login_required
@@ -338,15 +321,17 @@ def update_quantity(product_id):
             cart[str(product_id)]['quantity'] -= 1
 
     session['cart'] = cart
-    flash("Cart updated!", "success")
+    flash("🛒 Cart updated!", "success")
     return redirect('/cart')
+
+
 @app.route('/checkout', methods=['POST'])
 @login_required
 @role_required('buyer')
 def checkout():
     cart = session.get('cart', {})
     if not cart:
-        flash("Your cart is empty.", "warning")
+        flash("⚠️ Your cart is empty.", "warning")
         return redirect('/cart')
 
     buyer_username = session['username']
@@ -357,7 +342,6 @@ def checkout():
             flash(f"❌ Not enough stock for {item['name']}.", "danger")
             return redirect('/cart')
 
-        # Deduct stock
         product.quantity -= item['quantity']
         product.sold += item['quantity']
 
@@ -367,7 +351,8 @@ def checkout():
                 buyer_username=buyer_username,
                 product_id=product.id,
                 product_name=product.name,
-                price=product.price
+                price=product.price,
+                timestamp=datetime.utcnow()
             )
             db.session.add(purchase)
 
@@ -377,10 +362,9 @@ def checkout():
             seller.revenue = (seller.revenue or 0) + (product.price * item['quantity'])
 
     db.session.commit()
-    session['cart'] = {}  # Clear cart after checkout
+    session['cart'] = {}
     flash("✅ Purchase successful! Thank you.", "success")
     return redirect('/buyer_dashboard')
-
 
 
 @app.route('/clear_cart')
@@ -392,17 +376,12 @@ def clear_cart():
     return redirect('/cart')
 
 
-
-
-
-
 @app.route('/buyer_profile')
 @login_required
 @role_required('buyer')
 def buyer_profile():
     purchases = Purchase.query.filter_by(buyer_username=session['username']).order_by(Purchase.timestamp.desc()).all()
     return render_template("buyer_profile.html", purchases=purchases)
-
 
 
 @app.route("/seller_dashboard")
@@ -440,13 +419,11 @@ def add_product():
         flash('❌ Invalid image file!', 'danger')
         return redirect('/seller_dashboard')
 
-    # ✅ Get seller ID from session username
     seller = User.query.filter_by(username=session['username']).first()
     if not seller:
         flash('❌ Seller not found.', 'danger')
         return redirect('/seller_dashboard')
 
-    # ✅ Create new Product with correct seller_id
     new_product = Product(
         id=str(uuid.uuid4()),
         name=name,
@@ -462,46 +439,42 @@ def add_product():
 
     db.session.add(new_product)
     db.session.commit()
-
     flash('✅ Product added successfully!', 'success')
     return redirect('/seller_dashboard')
+
+# ------------------------- Delete Product -------------------------
 @app.route('/delete_product/<id>')
 @login_required
 @role_required('seller')
 def delete_product(id):
-    username = session.get('username')
-    seller = User.query.filter_by(username=username).first()
-
+    seller = User.query.filter_by(username=session['username']).first()
     if not seller:
-        flash("Seller not found", "danger")
+        flash("❌ Seller not found", "danger")
         return redirect('/seller_dashboard')
 
     product = Product.query.filter_by(id=id, seller_id=seller.id).first()
-
     if product:
         db.session.delete(product)
         db.session.commit()
-        flash("Product deleted successfully!", "success")
+        flash("✅ Product deleted successfully!", "success")
     else:
-        flash("Product not found or unauthorized access.", "danger")
+        flash("❌ Product not found or unauthorized access.", "danger")
 
     return redirect('/seller_dashboard')
 
-
-
+# ------------------------- Edit Product -------------------------
 @app.route('/edit_product/<id>', methods=['GET', 'POST'])
 @login_required
 @role_required('seller')
 def edit_product(id):
-    username = session['username']
-    seller = User.query.filter_by(username=username).first()
+    seller = User.query.filter_by(username=session['username']).first()
     if not seller:
-        flash("Seller not found", "danger")
+        flash("❌ Seller not found", "danger")
         return redirect('/login')
 
     product = Product.query.filter_by(id=id, seller_id=seller.id).first()
     if not product:
-        flash("Product not found or unauthorized", "danger")
+        flash("❌ Product not found or unauthorized", "danger")
         return redirect('/seller_dashboard')
 
     if request.method == 'POST':
@@ -514,26 +487,28 @@ def edit_product(id):
 
         image = request.files.get('image')
         if image and allowed_file(image.filename):
-            filename = secure_filename(str(uuid.uuid4()) + '_' + image.filename)
+            filename = secure_filename(f"{uuid.uuid4().hex}_{image.filename}")
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             image.save(filepath)
-            product.image = f'/static/uploads/{filename}'
+            product.image = f"/static/uploads/{filename}"
 
         db.session.commit()
-        flash("Product updated!", "success")
+        flash("✅ Product updated!", "success")
         return redirect('/seller_dashboard')
 
     return render_template('edit_product.html', product=product)
 
+# ------------------------- Buyer Dashboard -------------------------
 @app.route('/buyer_dashboard')
 @login_required
 @role_required('buyer')
 def buyer_dashboard():
     all_products = Product.query.all()
-
     scent_filter = request.args.get('filter')
     filtered = filter_products_by_type(all_products, scent_filter)
     return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)
+
+# ------------------------- Add to Cart -------------------------
 @app.route('/add_to_cart/<id>')
 @login_required
 @role_required('buyer')
@@ -542,32 +517,26 @@ def add_to_cart(id):
     product = Product.query.get(id)
 
     if not product:
-        flash("Product not found", "danger")
+        flash("❌ Product not found", "danger")
         return redirect('/buyer_dashboard')
 
-    # Check if item already exists in cart
     existing_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
-    
     if existing_item:
         existing_item.quantity += 1
     else:
-        existing_item = CartItem(buyer_username=username, product_id=id, quantity=1)
-        db.session.add(existing_item)
+        new_item = CartItem(buyer_username=username, product_id=id, quantity=1)
+        db.session.add(new_item)
 
     db.session.commit()
-
-    flash(f"{product.name} added to cart!", "success")
+    flash(f"✅ {product.name} added to cart!", "success")
     return redirect('/cart')
+
+# ------------------------- View Cart -------------------------
 @app.route('/cart')
 @login_required
 @role_required('buyer')
 def cart():
-
-    if 'username' not in session:
-        flash("Please log in to view your cart.", "warning")
-        return redirect('/login')
-
-    username = session['username']
+    username = session.get('username')
     user_cart_items = CartItem.query.filter_by(buyer_username=username).all()
 
     items = []
@@ -576,17 +545,13 @@ def cart():
     for item in user_cart_items:
         product = Product.query.get(item.product_id)
         if product:
-            item_info = {
-                'product': product,
-                'quantity': item.quantity,
-                'subtotal': float(product.price) * item.quantity
-            }
-            items.append(item_info)
-            total_price += item_info['subtotal']
+            subtotal = float(product.price) * item.quantity
+            items.append({'product': product, 'quantity': item.quantity, 'subtotal': subtotal})
+            total_price += subtotal
 
     return render_template("cart.html", cart_items=items, total_price=total_price)
 
-
+# ------------------------- Admin Dashboard -------------------------
 @app.route('/admin_dashboard')
 @login_required
 @role_required('admin')
@@ -601,7 +566,7 @@ def admin_dashboard():
 
     seller_data = [{
         'seller': seller.username,
-        'product_count': Product.query.filter_by(seller_id=seller.id).count()  # ✅ fixed here
+        'product_count': Product.query.filter_by(seller_id=seller.id).count()
     } for seller in all_sellers]
 
     type_counts = {}
@@ -625,7 +590,6 @@ def admin_dashboard():
 @role_required('admin')
 def product_charts():
     all_products = Product.query.all()
-
     type_counts = {}
     for p in all_products:
         t = p.type
@@ -634,6 +598,7 @@ def product_charts():
     return render_template('product_charts.html',
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
+
 
 @app.route('/product_type_overview')
 @login_required
@@ -644,6 +609,7 @@ def product_type_overview():
     for p in all_products:
         counts[p.type] = counts.get(p.type, 0) + 1
     return render_template('product_type_overview.html', counts=counts)
+
 
 @app.route('/product_sales_summary')
 @login_required
@@ -668,8 +634,6 @@ def seller_product_counts():
     } for seller in sellers]
 
 
-
-
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
@@ -683,12 +647,10 @@ def reset_password():
             return redirect('/login')
         else:
             flash('Invalid user.', 'danger')
-            return redirect('/forgot_password')
+            return redirect('/reset_password')
     else:
         username = request.args.get('username', '')
         return render_template('reset_password.html', username=username)
-
-
 
 
 @app.route('/remove_from_cart/<id>')
@@ -711,6 +673,7 @@ def remove_from_cart(id):
     flash("Item removed from cart.", "success")
     return redirect('/cart')
 
+
 @app.route('/product_gallery')
 @login_required
 @role_required('admin')
@@ -719,15 +682,12 @@ def product_gallery():
     return render_template('product_gallery.html', products=all_products)
 
 
-
 # ----------------- 404 Error Handler -----------------
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
 
 
-
-
-
+# ----------------- Main App Entry -----------------
 if __name__ == '__main__':
     app.run(debug=True)

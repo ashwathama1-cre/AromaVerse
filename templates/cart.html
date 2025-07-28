@@ -62,6 +62,10 @@
         ← Back to Products
       </a>
     </div>
+  <a href="{{ url_for('remove_from_cart', id=item.product.id) }}" class="btn btn-danger btn-sm">
+    ➖ Remove
+</a>
+
   {% else %}
     <div class="alert alert-warning text-center">
       😞 Your cart is empty. Browse <a href="/buyer_dashboard">products</a> to add items.

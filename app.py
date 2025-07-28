@@ -47,16 +47,18 @@ class User(db.Model):
     cart_items = db.relationship('CartItem', backref='buyer', lazy=True)
 
 class Product(db.Model):
-    id = db.Column(db.String(36), primary_key=True)  # Use string UUID as in your insert
+    id = db.Column(db.String(36), primary_key=True)
     name = db.Column(db.String(100))
     type = db.Column(db.String(100))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     unit = db.Column(db.String(20))
     image = db.Column(db.String(200))
-    seller_username = db.Column(db.String(80))  # <- Add this
-    description = db.Column(db.Text)            # <- Add this
-    sold = db.Column(db.Integer, default=0)     # <- Add this
+    description = db.Column(db.Text)
+    sold = db.Column(db.Integer, default=0)
+
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # ✅ FIXED
+
 
 
 class CartItem(db.Model):
@@ -125,30 +127,30 @@ def insert_fake_data():
         seller1 = User(username='seller1', password=generate_password_hash('1234'), role='seller')
         db.session.add(seller1)
         db.session.commit()
+if not Product.query.first():
+    p1 = Product(
+        id=str(uuid.uuid4()),
+        name='Rose Itra',
+        type='Rose',
+        quantity=100,
+        unit='ml',
+        price=150.0,
+        seller_id=seller1.id,  # ✅ Correct FK
+        image='rose_itra.jpg',
+        description='Classic rose fragrance.'
+    )
+    p2 = Product(
+        id=str(uuid.uuid4()),
+        name='Musk Itra',
+        type='Musk',
+        quantity=80,
+        unit='ml',
+        price=180.0,
+        seller_id=seller1.id,  # ✅ Correct FK
+        image='musk_itra.jpg',
+        description='Bold musk fragrance.'
+    )
 
-    if not Product.query.first():
-        p1 = Product(
-            id=str(uuid.uuid4()),
-            name='Rose Itra',
-            type='Rose',
-            quantity=100,
-            unit='ml',
-            price=150.0,
-            seller_username='seller1',
-            image='rose_itra.jpg',
-            description='Classic rose fragrance.'
-        )
-        p2 = Product(
-            id=str(uuid.uuid4()),
-            name='Musk Itra',
-            type='Musk',
-            quantity=80,
-            unit='ml',
-            price=180.0,
-            seller_username='seller1',
-            image='musk_itra.jpg',
-            description='Bold musk fragrance.'
-        )
         db.session.add_all([p1, p2])
         db.session.commit()
 

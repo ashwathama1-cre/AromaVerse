@@ -47,21 +47,24 @@ class User(db.Model):
     cart_items = db.relationship('CartItem', backref='buyer', lazy=True)
 
 class Product(db.Model):
-    id = db.Column(db.String, primary_key=True)
+    id = db.Column(db.String(36), primary_key=True)  # Use string UUID as in your insert
     name = db.Column(db.String(100))
+    type = db.Column(db.String(100))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
-    sold = db.Column(db.Integer, default=0)
-    type = db.Column(db.String(50))
     unit = db.Column(db.String(20))
     image = db.Column(db.String(200))
-    description = db.Column(db.Text)
-    seller_username = db.Column(db.String(100), db.ForeignKey('user.username'))
+    seller_username = db.Column(db.String(80))  # <- Add this
+    description = db.Column(db.Text)            # <- Add this
+    sold = db.Column(db.Integer, default=0)     # <- Add this
+
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    buyer_username = db.Column(db.String(100), db.ForeignKey('user.username'))
-    product_id = db.Column(db.String(100), db.ForeignKey('product.id'))
+    buyer_username = db.Column(db.String(80))  # You must have this (or rename to `username`)
+    product_id = db.Column(db.String(36), db.ForeignKey('product.id'))
+    quantity = db.Column(db.Integer, default=1)  # ✅ Fix: Add default
+
 
 
 
@@ -405,23 +408,30 @@ def add_to_cart(id):
     return redirect('/cart')
 
 
-@app.route("/cart")
-@login_required
-@role_required('buyer')
+@app.route('/cart')
 def cart():
+    if 'username' not in session:
+        flash("Please log in to view your cart.", "warning")
+        return redirect('/login')
+
     username = session['username']
     user_cart_items = CartItem.query.filter_by(buyer_username=username).all()
 
     items = []
     total_price = 0
+
     for item in user_cart_items:
         product = Product.query.get(item.product_id)
         if product:
-            items.append(product)
-            total_price += float(product.price)
+            item_info = {
+                'product': product,
+                'quantity': item.quantity,
+                'subtotal': float(product.price) * item.quantity
+            }
+            items.append(item_info)
+            total_price += item_info['subtotal']
 
     return render_template("cart.html", cart_items=items, total_price=total_price)
-
 
 @app.route('/view_cart')
 @login_required

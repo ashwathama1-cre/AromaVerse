@@ -8,15 +8,29 @@ from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
 import os
 import uuid
+import logging
 
 # Load environment variables
 load_dotenv()
+
+# ---------------- LOGGING SETUP ----------------
+LOG_FILE = 'logs/error.log'
+os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.ERROR,
+    format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+)
+
+# ----------------------------------------------
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default_secret_key')
 
 # Upload folder
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Session configuration
@@ -30,6 +44,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # SQLAlchemy setup
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
 # CSRF protection
@@ -56,28 +71,22 @@ class Product(db.Model):
     image = db.Column(db.String(200))
     description = db.Column(db.Text)
     sold = db.Column(db.Integer, default=0)
-
-    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # ✅ FIXED
-
-
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))  # ✅ Proper FK to User
-    product_id = db.Column(db.String(36), db.ForeignKey('product.id'), nullable=False)  # ✅ Proper FK to Product
+    buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
+    product_id = db.Column(db.String(36), db.ForeignKey('product.id'), nullable=False)
     quantity = db.Column(db.Integer, default=1)
-
-    # Relationships
     product = db.relationship('Product', backref='cart_items', lazy=True)
 
 
-
-
-
-
-# Now your models are correct and your app should save new users properly and resolve the foreign key error.
-# Please ensure this code is merged at the top of your existing file before any logic that uses the models.
-
+class Purchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
+    product_name = db.Column(db.String(100))
+    price = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime)
 
 
 
@@ -103,6 +112,7 @@ def role_required(role):
             return f(*args, **kwargs)
         return decorated
     return decorator
+
 def filter_products_by_type(products_list, scent_type):
     if scent_type:
         return [p for p in products_list if p.type.lower() == scent_type.lower()]
@@ -121,45 +131,45 @@ def calculate_revenue(products_list):
     return sum(int(p.get('sold', 0)) * float(p['price']) for p in products_list)
 
 
-# ------------------ Define insert_fake_data FIRST ------------------
 def insert_fake_data():
-    if not User.query.filter_by(role='seller').first():
-        seller1 = User(username='seller1', password=generate_password_hash('1234'), role='seller')
-        db.session.add(seller1)
-        db.session.commit()
-
-        if not Product.query.first():
-            p1 = Product(
-                id=str(uuid.uuid4()),
-                name='Rose Itra',
-                type='Rose',
-                quantity=100,
-                unit='ml',
-                price=150.0,
-                seller_id=seller1.id,
-                image='rose_itra.jpg',
-                description='Classic rose fragrance.'
-            )
-            p2 = Product(
-                id=str(uuid.uuid4()),
-                name='Musk Itra',
-                type='Musk',
-                quantity=80,
-                unit='ml',
-                price=180.0,
-                seller_id=seller1.id,
-                image='musk_itra.jpg',
-                description='Bold musk fragrance.'
-            )
-
-            db.session.add_all([p1, p2])
+    try:
+        if not User.query.filter_by(role='seller').first():
+            seller1 = User(username='seller1', password=generate_password_hash('1234'), role='seller')
+            db.session.add(seller1)
             db.session.commit()
 
-# ------------------ THEN call it inside app context ------------------
+            if not Product.query.first():
+                p1 = Product(
+                    id=str(uuid.uuid4()),
+                    name='Rose Itra',
+                    type='Rose',
+                    quantity=100,
+                    unit='ml',
+                    price=150.0,
+                    seller_id=seller1.id,
+                    image='rose_itra.jpg',
+                    description='Classic rose fragrance.'
+                )
+                p2 = Product(
+                    id=str(uuid.uuid4()),
+                    name='Musk Itra',
+                    type='Musk',
+                    quantity=80,
+                    unit='ml',
+                    price=180.0,
+                    seller_id=seller1.id,
+                    image='musk_itra.jpg',
+                    description='Bold musk fragrance.'
+                )
+
+                db.session.add_all([p1, p2])
+                db.session.commit()
+    except Exception as e:
+        logging.error(f"Error inserting fake data: {str(e)}")
+
 with app.app_context():
     db.create_all()
     insert_fake_data()
-
 
 
 
@@ -275,6 +285,40 @@ def add_user():
             
     return render_template('add_user.html')
 
+from datetime import datetime
+
+@app.route('/buy/<int:product_id>')
+@login_required
+@role_required('buyer')
+def buy_product(product_id):
+    product = Product.query.get_or_404(product_id)
+
+    if product.quantity <= 0:
+        flash("Sorry, this product is out of stock.", "danger")
+        return redirect('/buyer_dashboard')
+
+    product.quantity -= 1
+    product.sold += 1
+
+    # Update seller revenue
+    seller = User.query.filter_by(username=product.seller).first()
+    if seller:
+        seller.revenue = (seller.revenue or 0) + product.price
+
+    # Log purchase in DB
+    purchase = Purchase(
+        buyer_username=session['username'],
+        product_name=product.name,
+        price=product.price,
+        timestamp=datetime.now()
+    )
+    db.session.add(purchase)
+    db.session.commit()
+
+    flash("Product purchased successfully!", "success")
+    return redirect('/buyer_profile')
+
+
 
 
 @app.route('/seller_dashboard')
@@ -282,7 +326,13 @@ def add_user():
 @role_required('seller')
 def seller_dashboard():
     username = session['username']
-    seller_products = Product.query.filter_by(seller_username=username).all()
+    seller = User.query.filter_by(username=username).first()
+    if not seller:
+        flash("Seller not found", "danger")
+        return redirect('/login')
+
+    # ✅ You forgot to assign the query result
+    seller_products = Product.query.filter_by(seller_id=seller.id).all()
 
     scent_filter = request.args.get('filter')
     filtered = filter_products_by_type(seller_products, scent_filter)
@@ -334,19 +384,26 @@ def add_product():
 
     flash('✅ Product added successfully!', 'success')
     return redirect('/seller_dashboard')
-
 @app.route('/delete_product/<id>')
 @login_required
 @role_required('seller')
 def delete_product(id):
-    username = session['username']
-    product = Product.query.filter_by(id=id, seller_username=username).first()
+    username = session.get('username')
+    seller = User.query.filter_by(username=username).first()
+
+    if not seller:
+        flash("Seller not found", "danger")
+        return redirect('/seller_dashboard')
+
+    product = Product.query.filter_by(id=id, seller_id=seller.id).first()
+
     if product:
         db.session.delete(product)
         db.session.commit()
-        flash('Product deleted successfully!', 'warning')
+        flash("Product deleted successfully!", "success")
     else:
-        flash('Product not found or unauthorized', 'danger')
+        flash("Product not found or unauthorized access.", "danger")
+
     return redirect('/seller_dashboard')
 
 
@@ -356,7 +413,12 @@ def delete_product(id):
 @role_required('seller')
 def edit_product(id):
     username = session['username']
-    product = Product.query.filter_by(id=id, seller_username=username).first()
+    seller = User.query.filter_by(username=username).first()
+    if not seller:
+        flash("Seller not found", "danger")
+        return redirect('/login')
+
+    product = Product.query.filter_by(id=id, seller_id=seller.id).first()
     if not product:
         flash("Product not found or unauthorized", "danger")
         return redirect('/seller_dashboard')
@@ -381,11 +443,6 @@ def edit_product(id):
         return redirect('/seller_dashboard')
 
     return render_template('edit_product.html', product=product)
-
-
-    # No need to touch sellers/carts dict
-    flash(f"{role.capitalize()} created!", 'success')
-
 
 @app.route('/buyer_dashboard')
 @login_required
@@ -456,19 +513,20 @@ def admin_dashboard():
     all_products = Product.query.all()
     all_sellers = User.query.filter_by(role='seller').all()
 
-    total_qty = sum(p.quantity + p.sold for p in all_products)
-    total_sold = sum(p.sold for p in all_products)
-    total_remaining = sum(p.quantity for p in all_products)
-    total_revenue = sum(p.sold * p.price for p in all_products)
+    total_qty = sum((p.quantity or 0) + (p.sold or 0) for p in all_products)
+    total_sold = sum(p.sold or 0 for p in all_products)
+    total_remaining = sum(p.quantity or 0 for p in all_products)
+    total_revenue = sum((p.sold or 0) * (p.price or 0) for p in all_products)
 
     seller_data = [{
         'seller': seller.username,
-        'product_count': Product.query.filter_by(seller_username=seller.username).count()
+        'product_count': Product.query.filter_by(seller_id=seller.id).count()  # ✅ fixed here
     } for seller in all_sellers]
 
     type_counts = {}
     for p in all_products:
-        type_counts[p.type] = type_counts.get(p.type, 0) + 1
+        p_type = p.type or 'Unknown'
+        type_counts[p_type] = type_counts.get(p_type, 0) + 1
 
     return render_template('admin_dashboard.html',
                            total_revenue=total_revenue,
@@ -478,6 +536,8 @@ def admin_dashboard():
                            seller_data=seller_data,
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
+
+
 
 @app.route('/product_charts')
 @login_required
@@ -523,8 +583,10 @@ def seller_product_counts():
     sellers = User.query.filter_by(role='seller').all()
     return [{
         'seller': seller.username,
-        'product_count': Product.query.filter_by(seller_username=seller.username).count()
+        'product_count': Product.query.filter_by(seller_id=seller.id).count()
     } for seller in sellers]
+
+
 
 
 @app.route('/reset_password', methods=['GET', 'POST'])
@@ -574,6 +636,15 @@ def remove_from_cart(id):
 def product_gallery():
     all_products = Product.query.all()
     return render_template('product_gallery.html', products=all_products)
+
+
+@app.route('/buyer_profile')
+@login_required
+@role_required('buyer')
+def buyer_profile():
+    purchases = Purchase.query.filter_by(buyer_username=session['username']).order_by(Purchase.timestamp.desc()).all()
+    return render_template("buyer_profile.html", purchases=purchases)
+
 
 
 # ----------------- 404 Error Handler -----------------

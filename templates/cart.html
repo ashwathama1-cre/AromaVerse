@@ -20,7 +20,7 @@
 
 {% with messages = get_flashed_messages() %}
   {% if messages %}
-    <div class="alert alert-success text-center">
+    <div class="alert alert-success text-center mt-3">
       {% for message in messages %}
         {{ message }}
       {% endfor %}
@@ -36,7 +36,7 @@
       {% for item in cart_items %}
         <div class="list-group-item d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
-            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-img me-3 rounded" />
+            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="product-img me-3 rounded shadow-sm" />
             <div>
               <h5>{{ item.name }} ({{ item.unit }})</h5>
               <p class="mb-1">💰 <strong>₹{{ item.price }}</strong></p>

@@ -118,12 +118,7 @@ def calculate_stock_sold(products_list):
 def calculate_revenue(products_list):
     return sum(int(p.get('sold', 0)) * float(p['price']) for p in products_list)
 
-def seller_product_counts():
-    return [{
-        'seller': name,
-        'email': '',  # Removed in-memory users
-        'product_count': len(prod_list)
-    } for name, prod_list in sellers.items()]
+
 # ------------------ Define insert_fake_data FIRST ------------------
 def insert_fake_data():
     if not User.query.filter_by(role='seller').first():
@@ -187,7 +182,7 @@ def login():
             elif user.role == 'seller':
                 return redirect('/seller_dashboard')
             else:
-                carts.setdefault(username, [])
+               
                 return redirect('/buyer_dashboard')
         flash('Invalid credentials', 'danger')
     return render_template('login.html')
@@ -207,7 +202,7 @@ def register():
             new_user = User(username=username, password=generate_password_hash(password), role='buyer')
             db.session.add(new_user)
             db.session.commit()
-            carts[username] = []
+            
             flash('Account created! Please login.', 'success')
             return redirect('/login')
     return render_template('register.html')
@@ -392,28 +387,35 @@ def buyer_dashboard():
     scent_filter = request.args.get('filter')
     filtered = filter_products_by_type(all_products, scent_filter)
     return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)
-
 @app.route('/add_to_cart/<id>')
 @login_required
 @role_required('buyer')
 def add_to_cart(id):
     username = session['username']
-    product = Product.query.filter_by(id=id).first()
+    product = Product.query.get(id)
 
     if not product:
         flash("Product not found", "danger")
         return redirect('/buyer_dashboard')
 
-    new_cart_item = CartItem(buyer_username=username, product_id=product.id)
-    db.session.add(new_cart_item)
+    # Check if item already exists in cart
+    existing_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
+    
+    if existing_item:
+        existing_item.quantity += 1
+    else:
+        existing_item = CartItem(buyer_username=username, product_id=id, quantity=1)
+        db.session.add(existing_item)
+
     db.session.commit()
 
     flash(f"{product.name} added to cart!", "success")
     return redirect('/cart')
-
-
 @app.route('/cart')
+@login_required
+@role_required('buyer')
 def cart():
+
     if 'username' not in session:
         flash("Please log in to view your cart.", "warning")
         return redirect('/login')
@@ -436,16 +438,6 @@ def cart():
             total_price += item_info['subtotal']
 
     return render_template("cart.html", cart_items=items, total_price=total_price)
-
-@app.route('/view_cart')
-@login_required
-@role_required('buyer')
-def view_cart():
-    username = session['username']
-    cart_items = CartItem.query.filter_by(buyer_username=username).all()
-    products = [Product.query.get(item.product_id) for item in cart_items]
-    return render_template('cart.html', cart_items=products)
-
 
 
 @app.route('/admin_dashboard')
@@ -544,6 +536,28 @@ def reset_password():
         username = request.args.get('username', '')
         return render_template('reset_password.html', username=username)
 
+
+
+
+@app.route('/remove_from_cart/<id>')
+@login_required
+@role_required('buyer')
+def remove_from_cart(id):
+    username = session['username']
+    item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
+
+    if not item:
+        flash("Item not found in cart.", "warning")
+        return redirect('/cart')
+
+    if item.quantity > 1:
+        item.quantity -= 1
+    else:
+        db.session.delete(item)
+
+    db.session.commit()
+    flash("Item removed from cart.", "success")
+    return redirect('/cart')
 
 @app.route('/product_gallery')
 @login_required

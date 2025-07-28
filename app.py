@@ -327,16 +327,17 @@ def buy_product(product_id):
 def seller_dashboard():
     username = session['username']
     seller = User.query.filter_by(username=username).first()
+
     if not seller:
         flash("Seller not found", "danger")
         return redirect('/login')
 
-    # ✅ You forgot to assign the query result
-    seller_products = Product.query.filter_by(seller_id=seller.id).all()
-
+    products = Product.query.filter_by(seller_username=username).all()
     scent_filter = request.args.get('filter')
-    filtered = filter_products_by_type(seller_products, scent_filter)
+    filtered = filter_products_by_type(products, scent_filter)
+
     return render_template('seller_dashboard.html', products=filtered, scent_filter=scent_filter)
+
 
 @app.route('/add_product', methods=['POST'])
 @login_required

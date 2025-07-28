@@ -324,6 +324,77 @@ def buy_product(product_id):
     flash("Product purchased successfully!", "success")
     return redirect('/buyer_dashboard')  # Or /cart if using cart system
 
+@app.route('/update_quantity/<int:product_id>', methods=['POST'])
+@login_required
+@role_required('buyer')
+def update_quantity(product_id):
+    action = request.form.get('action')
+    cart = session.get('cart', {})
+
+    if str(product_id) in cart:
+        if action == 'increase':
+            cart[str(product_id)]['quantity'] += 1
+        elif action == 'decrease' and cart[str(product_id)]['quantity'] > 1:
+            cart[str(product_id)]['quantity'] -= 1
+
+    session['cart'] = cart
+    flash("Cart updated!", "success")
+    return redirect('/cart')
+@app.route('/checkout', methods=['POST'])
+@login_required
+@role_required('buyer')
+def checkout():
+    cart = session.get('cart', {})
+    if not cart:
+        flash("Your cart is empty.", "warning")
+        return redirect('/cart')
+
+    buyer_username = session['username']
+
+    for item in cart.values():
+        product = Product.query.get(item['id'])
+        if not product or product.quantity < item['quantity']:
+            flash(f"❌ Not enough stock for {item['name']}.", "danger")
+            return redirect('/cart')
+
+        # Deduct stock
+        product.quantity -= item['quantity']
+        product.sold += item['quantity']
+
+        # Add to Purchase table
+        for _ in range(item['quantity']):
+            purchase = Purchase(
+                buyer_username=buyer_username,
+                product_id=product.id,
+                product_name=product.name,
+                price=product.price
+            )
+            db.session.add(purchase)
+
+        # Update seller revenue
+        seller = User.query.filter_by(username=product.seller).first()
+        if seller:
+            seller.revenue = (seller.revenue or 0) + (product.price * item['quantity'])
+
+    db.session.commit()
+    session['cart'] = {}  # Clear cart after checkout
+    flash("✅ Purchase successful! Thank you.", "success")
+    return redirect('/buyer_dashboard')
+
+
+
+@app.route('/clear_cart')
+@login_required
+@role_required('buyer')
+def clear_cart():
+    session['cart'] = {}
+    flash("🧹 Cart cleared successfully.", "info")
+    return redirect('/cart')
+
+
+
+
+
 
 @app.route('/buyer_profile')
 @login_required

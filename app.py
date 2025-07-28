@@ -163,7 +163,13 @@ with app.app_context():
 # ------------------ Routes ------------------
 
 
-@app.before_first_request
+@app.before_request
+def init_db_once():
+    if not hasattr(app, 'db_initialized'):
+        db.create_all()
+        print("✅ Database initialized once.")
+        app.db_initialized = True
+
 def create_admin_if_not_exists():
     db.create_all()  # Ensure all tables are created
     admin = User.query.filter_by(username='admin').first()

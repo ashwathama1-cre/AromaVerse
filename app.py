@@ -52,9 +52,11 @@ logging.basicConfig(
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(150), nullable=False)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), nullable=False)
+    email = db.Column(db.String(120), unique=True)  # ✅ Add this line
+
 
 class Product(db.Model):
     id = db.Column(db.String(36), primary_key=True)
@@ -149,19 +151,28 @@ def insert_fake_data():
 # ------------------ App Context Init ------------------
 
 with app.app_context():
-    if os.path.exists("users.db"):
-        os.remove("users.db")  # 🧨 TEMPORARY - Deletes old DB
+    if app.env == 'development' and os.path.exists("users.db"):
+        os.remove("users.db")  # Only deletes DB in development mode
 
     db.create_all()
+
+    # Create admin user if not exists
     if not User.query.filter_by(username='admin').first():
         hashed_pw = generate_password_hash('1234')
-        admin = User(username='admin', password=hashed_pw, role='admin')
+        admin = User(username='admin', password=hashed_pw, role='admin', email='admin@example.com')
         db.session.add(admin)
-        db.session.commit()
-        print("✅ Admin user created")
 
+    # ✅ Add shaurya seller user
+    if not User.query.filter_by(username='shaurya').first():
+        hashed_pw = generate_password_hash('12345678')
+        shaurya = User(username='shaurya', password=hashed_pw, role='seller', email='shaurya@example.com')
+        db.session.add(shaurya)
 
+    db.session.commit()
+
+    # Insert sample products
     insert_fake_data()
+
 
 # ------------------ Routes ------------------
 

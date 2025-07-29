@@ -3,7 +3,7 @@
 from app import app, db, Product, User
 import uuid
 
-# Sample 50+ Itra Data
+# Sample 10 Itra Data
 itras = [
     {
         "name": "Rose Attar",
@@ -94,15 +94,15 @@ itras = [
         "unit": "ml",
         "image": "amber.jpg",
         "description": "Sweet, warm, powdery scent. Blended from resins and vanilla notes. Long lasting."
-    },
-    # Add 40+ more with variety of names, types, etc.
+    }
 ]
 
-# Auto-generate extra 40 variants by cloning above ones
+# Auto-generate 40 extra variants
 extra_types = ["Floral", "Woody", "Spicy", "Musk", "Citrus"]
 for i in range(40):
     base = itras[i % len(itras)].copy()
     base["name"] = f"{base['name'].split()[0]} Variant {i+1}"
+    base["type"] = extra_types[i % len(extra_types)]
     base["price"] += (i % 5) * 10
     base["quantity"] = 50 + (i % 20) * 2
     base["image"] = f"{base['name'].lower().replace(' ', '_')}.jpg"
@@ -118,7 +118,7 @@ with app.app_context():
         for itra in itras:
             exists = Product.query.filter_by(name=itra['name'], seller_id=seller.id).first()
             if not exists:
-                p = Product(
+                new_product = Product(
                     id=str(uuid.uuid4()),
                     name=itra['name'],
                     type=itra['type'],
@@ -129,7 +129,7 @@ with app.app_context():
                     description=itra['description'],
                     seller_id=seller.id
                 )
-                db.session.add(p)
+                db.session.add(new_product)
                 added += 1
         db.session.commit()
-        print(f"✅ {added} Itra products added to database.")
+        print(f"✅ {added} Itra products added to database for seller '{seller.username}'.")

@@ -622,7 +622,7 @@ def admin_dashboard():
 
         seller_data = db.session.query(
             User.username.label("seller"),
-            User.email,
+            
             func.count(Product.id).label("product_count")
         ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
 

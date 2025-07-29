@@ -173,9 +173,126 @@ with app.app_context():
 
     # Insert sample products
     insert_fake_data()
+    insert_attar_products()
+
+ 
 
 
 # ------------------ Routes ------------------
+
+
+
+# insert 
+def insert_attar_products():
+    seller = User.query.filter_by(username='shaurya').first()
+    if not seller:
+        print("Seller 'shaurya' not found.")
+        return
+
+    attars = [
+        {
+            "name": "Rose Attar",
+            "type": "Rose",
+            "price": 150,
+            "quantity": 100,
+            "image": "rose.jpg",
+            "description": "Rich floral aroma with sweet, honey-like rose notes. Steam-distilled from rose petals into sandalwood oil."
+        },
+        {
+            "name": "Mogra Attar",
+            "type": "Jasmine",
+            "price": 180,
+            "quantity": 80,
+            "image": "mogra.jpg",
+            "description": "Intense creamy floral from jasmine blossoms. Known for uplifting romance and soothing nerves."
+        },
+        {
+            "name": "Chandan Attar",
+            "type": "Sandalwood",
+            "price": 200,
+            "quantity": 60,
+            "image": "chandan.jpg",
+            "description": "Creamy-woody aroma. Distilled from sandalwood heartwood. Ideal for meditation."
+        },
+        {
+            "name": "Mitti Attar",
+            "type": "Earth",
+            "price": 130,
+            "quantity": 100,
+            "image": "mitti.jpg",
+            "description": "Petrichor scent of first rain on earth. Made from baked soil and sandalwood."
+        },
+        {
+            "name": "Khus Attar",
+            "type": "Vetiver",
+            "price": 160,
+            "quantity": 90,
+            "image": "khus.jpg",
+            "description": "Earthy and cooling. Extracted from vetiver roots into sandalwood."
+        },
+        {
+            "name": "Kesar Attar",
+            "type": "Saffron",
+            "price": 300,
+            "quantity": 50,
+            "image": "kesar.jpg",
+            "description": "Luxurious blend of saffron and sandalwood. Exotic, spicy-sweet scent."
+        },
+        {
+            "name": "Shamama Attar",
+            "type": "Herbal Blend",
+            "price": 350,
+            "quantity": 40,
+            "image": "shamama.jpg",
+            "description": "Complex mix of vetiver, saffron, spices. Macerated and layered over weeks."
+        },
+        {
+            "name": "Black Musk Attar",
+            "type": "Musk",
+            "price": 250,
+            "quantity": 30,
+            "image": "black_musk.jpg",
+            "description": "Deep earthy musk using herbal musk bases like vetiver and patchouli."
+        },
+        {
+            "name": "Oudh Attar",
+            "type": "Oudh",
+            "price": 400,
+            "quantity": 25,
+            "image": "oudh.jpg",
+            "description": "Powerful resinous fragrance from agarwood. Used in royalty and rituals."
+        },
+        {
+            "name": "Amber Attar",
+            "type": "Amber",
+            "price": 280,
+            "quantity": 45,
+            "image": "amber.jpg",
+            "description": "Warm sweet-earthy amber scent. Blended with labdanum and benzoin resins."
+        }
+    ]
+
+    for a in attars:
+        if not Product.query.filter_by(name=a['name']).first():
+            new_product = Product(
+                id=str(uuid.uuid4()),
+                name=a['name'],
+                type=a['type'],
+                price=a['price'],
+                quantity=a['quantity'],
+                unit='ml',
+                image=a['image'],
+                description=a['description'],
+                seller_id=seller.id
+            )
+            db.session.add(new_product)
+
+    db.session.commit()
+    print("✅ Sample attar products inserted.")
+
+
+
+
 
 
 @app.before_request

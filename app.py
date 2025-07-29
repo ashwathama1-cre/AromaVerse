@@ -6,7 +6,7 @@ from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf import CSRFProtect
-csrf = CSRFProtect(app)
+
 
 from functools import wraps
 from datetime import timedelta, datetime
@@ -22,7 +22,9 @@ load_dotenv()
 
 # ------------------ App Configuration ------------------
 app = Flask(__name__)
+csrf = CSRFProtect(app) 
 app.secret_key = os.getenv('SECRET_KEY', 'mydefaultsecret')
+
 
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

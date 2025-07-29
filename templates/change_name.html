@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Change Username{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h3>🔤 Change Username</h3>
+  <form method="POST">
+    <div class="mb-3">
+      <label>Current Username:</label>
+      <input class="form-control" type="text" value="{{ current_username }}" disabled>
+    </div>
+    <div class="mb-3">
+      <label>New Username:</label>
+      <input class="form-control" type="text" name="new_name" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Change Username</button>
+  </form>
+</div>
+{% endblock %}

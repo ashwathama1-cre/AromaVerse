@@ -84,6 +84,9 @@ class Purchase(db.Model):
     product_name = db.Column(db.String(200))
     price = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    seller_id = db.Column(db.Integer)  # To identify seller
+    address = db.Column(db.String(300))  # Optional, for shipping info
+
 
 # ------------------ Utility Functions ------------------
 
@@ -552,6 +555,20 @@ def seller_dashboard():
 
     return render_template("seller_dashboard.html", products=products, notifications=notifications)
 
+
+#>>>>>>>>>>>>>>promote buyer 
+@app.route('/promote_user/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('admin')
+def promote_user(user_id):
+    user = User.query.get(user_id)
+    if user and user.role == 'buyer':
+        user.role = 'seller'
+        db.session.commit()
+        flash(f"✅ {user.username} is now a Seller!", "success")
+    return redirect(url_for('manage_users'))
+
+
 @app.route('/add_product', methods=['POST'])
 @login_required
 @role_required('seller')
@@ -743,16 +760,31 @@ def admin_dashboard():
            User.email.label("email"),
          func.count(Product.id).label("product_count")
             ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+        commission = 0
+        purchases = Purchase.query.all()
+        for p in purchases:
+         
+         if 'oud' in p.product_name.lower():
+          
+          commission += 10
+         else:
+          
+          commission += 5
+ 
 
 
-        return render_template("admin_dashboard.html",
-                               total_revenue=total_revenue,
-                               total_products=total_products,
-                               total_sold=total_sold,
-                               total_sellers=total_sellers,
-                               chart_labels=chart_labels,
-                               chart_data=chart_data,
-                               seller_data=seller_data)
+      return render_template("admin_dashboard.html",
+                       total_revenue=total_revenue,
+                       total_products=total_products,
+                       total_sold=total_sold,
+                       total_sellers=total_sellers,
+                       chart_labels=chart_labels,
+                       chart_data=chart_data,
+                       seller_data=seller_data,
+                       commission=commission
+                       type_breakdown=type_breakdown 
+                             )  # ← Add this
+
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -772,6 +804,40 @@ def product_charts():
     return render_template('product_charts.html',
                            chart_labels=list(type_counts.keys()),
                            chart_data=list(type_counts.values()))
+
+
+#>>>>>>>>>Product sale historry 
+@app.route('/sales_history')
+@login_required
+@role_required('admin')
+def sales_history():
+    sales = db.session.query(Purchase, Product).join(Product, Purchase.product_id == Product.id).all()
+    return render_template('product_sales_summary.html', sales=sales)
+
+
+#>>>>> manage seller 
+@app.route('/manage_sellers', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def manage_sellers():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        username = request.form['username']
+        
+        if action == 'add':
+            if not User.query.filter_by(username=username).first():
+                new_user = User(username=username, role='seller', password=generate_password_hash('1234'))
+                db.session.add(new_user)
+                flash("✅ Seller added", "success")
+        elif action == 'delete':
+            user = User.query.filter_by(username=username, role='seller').first()
+            if user:
+                db.session.delete(user)
+                flash("🗑️ Seller deleted", "warning")
+
+        db.session.commit()
+    sellers = User.query.filter_by(role='seller').all()
+    return render_template("seller_manage.html", sellers=sellers)
 
 
 @app.route('/product_type_overview')

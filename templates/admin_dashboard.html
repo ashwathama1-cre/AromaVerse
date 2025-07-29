@@ -42,6 +42,35 @@
     </div>
   </div>
 
+  <!-- Extra Stats & Actions -->
+  <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+    <div class="col">
+      <div class="card border-start border-primary border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Products Left</h6>
+          <p class="fw-bold text-primary">{{ total_unsold }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card border-start border-success border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Admin Commission Earned</h6>
+          <p class="fw-bold text-success">₹{{ commission }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <a href="/sales_history" class="btn btn-outline-info w-100 mt-3">🕒 View Sale History</a>
+      <a href="/admin_charts" class="btn btn-outline-primary w-100 mt-2">📊 Seller Comparison</a>
+      <a href="/manage_sellers" class="btn btn-outline-dark w-100 mt-2">👤 Manage Sellers</a>
+      <a href="/sell" class="btn btn-outline-success w-100 mt-2">➕ Add Product</a>
+      <a href="/promote_list" class="btn btn-outline-warning w-100 mt-2">🔁 Promote Buyer</a>
+    </div>
+  </div>
+
   <!-- Pie Chart -->
   <div class="card mb-4">
     <div class="card-header">

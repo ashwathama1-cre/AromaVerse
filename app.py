@@ -6,6 +6,8 @@ from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf import CSRFProtect
+csrf = CSRFProtect(app)
+
 from functools import wraps
 from datetime import timedelta, datetime
 from dotenv import load_dotenv

@@ -190,7 +190,7 @@ with app.app_context():
 import uuid
 
 def insert_attar_products():
-    from app import db, Product, User  # ✅ moved inside to avoid circular import
+   
 
     # Ensure a default seller exists
     seller = User.query.filter_by(username="admin_seller").first()
@@ -923,6 +923,16 @@ def remove_from_cart(id):
 def product_gallery():
     all_products = Product.query.all()
     return render_template('product_gallery.html', products=all_products)
+
+
+@app.route("/insert_attars")
+def insert_attars_once():
+    if 'role' in session and session['role'] == 'admin':
+        insert_attar_products()
+        return "✅ Attars inserted."
+    else:
+        return "Unauthorized", 403
+
 
 
 # ----------------- 404 Error Handler -----------------

@@ -1,73 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Admin Dashboard | Itra Store{% endblock %}
+
+{% block title %}Admin Dashboard | AromaVerse{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center">📊 Admin Dashboard</h2>
+<div class="container py-4">
+  <h2 class="mb-4">📊 Admin Dashboard</h2>
 
-<!-- Quick Navigation Section -->
-<div class="row mb-4">
-  <div class="col-md-2"><a href="{{ url_for('change_password') }}" class="btn btn-outline-dark w-100">🔑 Change Password</a></div>
-  <div class="col-md-2"><a href="{{ url_for('product_gallery') }}" class="btn btn-outline-dark w-100">🖼️ Product Gallery</a></div>
-  <div class="col-md-2"><a href="{{ url_for('product_type_overview') }}" class="btn btn-outline-dark w-100">📂 Type Overview</a></div>
-  <div class="col-md-2"><a href="{{ url_for('product_charts') }}" class="btn btn-outline-dark w-100">📊 Charts</a></div>
-  <div class="col-md-2"><a href="{{ url_for('product_sales_summary') }}" class="btn btn-outline-dark w-100">🧾 Sales Summary</a></div>
-  <div class="col-md-2"><a href="{{ url_for('seller_overview') }}" class="btn btn-outline-dark w-100">👨‍💼 Sellers</a></div>
-</div>
-
-<!-- Key Metrics -->
-<div class="row g-3">
-  <div class="col-md-3">
-    <div class="card border-success shadow-sm">
-      <div class="card-body text-success text-center">
-        <h5>💰 Total Revenue</h5>
-        <p class="fs-4">₹ {{ total_revenue or 0 }}</p>
+  <!-- Summary Cards -->
+  <div class="row mb-4 text-center">
+    <div class="col-md-3 mb-2">
+      <div class="card shadow-sm p-3">
+        <h5>Total Revenue</h5>
+        <p class="text-success fw-bold">₹{{ total_revenue }}</p>
+      </div>
+    </div>
+    <div class="col-md-3 mb-2">
+      <div class="card shadow-sm p-3">
+        <h5>Total Products</h5>
+        <p class="fw-bold">{{ total_products }}</p>
+      </div>
+    </div>
+    <div class="col-md-3 mb-2">
+      <div class="card shadow-sm p-3">
+        <h5>Total Sold</h5>
+        <p class="fw-bold">{{ total_sold }}</p>
+      </div>
+    </div>
+    <div class="col-md-3 mb-2">
+      <div class="card shadow-sm p-3">
+        <h5>Total Sellers</h5>
+        <p class="fw-bold">{{ total_sellers }}</p>
       </div>
     </div>
   </div>
-  <div class="col-md-3">
-    <div class="card border-primary shadow-sm">
-      <div class="card-body text-primary text-center">
-        <h5>🛍️ Total Products</h5>
-        <p class="fs-4">{{ total_products or 0 }}</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card border-danger shadow-sm">
-      <div class="card-body text-danger text-center">
-        <h5>📦 Total Sold</h5>
-        <p class="fs-4">{{ total_sold or 0 }}</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card border-warning shadow-sm">
-      <div class="card-body text-warning text-center">
-        <h5>👥 Total Sellers</h5>
-        <p class="fs-4">{{ total_sellers or 0 }}</p>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Product Type Pie Chart -->
-<div class="card mt-4 shadow-sm">
-  <div class="card-body">
-    <h5 class="card-title">🧪 Product Type Distribution</h5>
-    <canvas id="productPieChart"></canvas>
+  <!-- Pie Chart -->
+  <div class="row mb-5">
+    <div class="col-md-6 mx-auto">
+      <canvas id="productChart"></canvas>
+    </div>
   </div>
-</div>
 
-<!-- Seller Overview Table -->
-<div class="card mt-4 shadow-sm">
-  <div class="card-body">
-    <h5 class="card-title">👨‍💼 Sellers Overview</h5>
-    <table class="table table-bordered table-striped">
-      <thead class="table-dark">
+  <!-- Seller Overview -->
+  <h4 class="mb-3">🛍️ Seller Overview</h4>
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
         <tr>
           <th>Seller Name</th>
           <th>Email</th>
-          <th>Product Count</th>
+          <th>Total Products</th>
+          <!-- Optional: <th>Profile</th> -->
         </tr>
       </thead>
       <tbody>
@@ -76,52 +59,39 @@
           <td>{{ seller.seller }}</td>
           <td>{{ seller.email }}</td>
           <td>{{ seller.product_count }}</td>
+          <!-- Optional: <td><a href="/seller/{{ seller.id }}">View</a></td> -->
         </tr>
-        {% else %}
-        <tr><td colspan="3" class="text-center">No sellers found.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-{% endblock %}
 
-{% block extra_script %}
+<!-- Chart JS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ctx = document.getElementById('productPieChart').getContext('2d');
-  const productPieChart = new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: {{ chart_labels | safe }},
-      datasets: [{
-        label: 'Product Types',
-        data: {{ chart_data | safe }},
-        backgroundColor: [
-          '#ffc107', '#0d6efd', '#dc3545', '#198754', '#6f42c1', '#fd7e14'
-        ],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'right',
-          labels: {
-            boxWidth: 20,
-            padding: 15
-          }
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return context.label + ": " + context.parsed + " items";
-            }
-          }
-        }
+const ctx = document.getElementById('productChart');
+new Chart(ctx, {
+  type: 'pie',
+  data: {
+    labels: {{ chart_labels | safe }},
+    datasets: [{
+      label: 'Product Distribution',
+      data: {{ chart_data | safe }},
+      backgroundColor: [
+        '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#f67019'
+      ],
+      borderWidth: 1
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'bottom'
       }
     }
-  });
+  }
+});
 </script>
 {% endblock %}

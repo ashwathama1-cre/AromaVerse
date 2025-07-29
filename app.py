@@ -151,7 +151,8 @@ def insert_fake_data():
 # ------------------ App Context Init ------------------
 
 with app.app_context():
-    if app.env == 'development' and os.path.exists("users.db"):
+   if os.environ.get("FLASK_ENV") == "development" and os.path.exists("users.db"):
+
         os.remove("users.db")  # Only deletes DB in development mode
 
     db.create_all()

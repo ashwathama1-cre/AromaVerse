@@ -405,27 +405,28 @@ def forgot_password():
             return redirect('/login')
         flash('Username not found!', 'danger')
     return render_template('forgot_password.html')
-
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():
     if request.method == 'POST':
-        current = request.form['current_password']
-        new = request.form['new_password']
-        confirm = request.form['confirm_password']
+        current = request.form['current']
+        new = request.form['new']
+        confirm = request.form['confirm']
         user = User.query.filter_by(username=session['username']).first()
 
         if user and check_password_hash(user.password, current):
             if new == confirm:
                 user.password = generate_password_hash(new)
                 db.session.commit()
-                return render_template('change_password.html', success="Password changed successfully!")
+                flash('Password changed successfully.', 'success')  # ✅ Flash success message
+                return redirect('/change_password')
             else:
-                return render_template('change_password.html', error="New passwords do not match.")
+                flash('New passwords do not match.', 'danger')  # ✅ Flash error message
         else:
-            return render_template('change_password.html', error="Current password is incorrect.")
-    
+            flash('Current password is incorrect.', 'danger')  # ✅ Flash error message
+
     return render_template('change_password.html')
+
 
 
 @app.route('/add_user', methods=['GET', 'POST'])

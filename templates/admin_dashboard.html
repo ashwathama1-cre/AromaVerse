@@ -75,13 +75,22 @@
     </div>
   </div>
 
-  <!-- Pie Chart -->
+  <!-- Chart Section -->
   <div class="card mb-4">
-    <div class="card-header">
-      📈 Product Type Distribution
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        📊 Product Distribution Chart
+        <label for="chartTypeSelector" class="me-2">Chart Type:</label>
+        <select id="chartTypeSelector" class="form-select w-auto">
+          <option value="">-- Choose Chart --</option>
+          <option value="pie">Pie Chart</option>
+          <option value="bar">Bar Chart</option>
+          <option value="doughnut">Doughnut Chart</option>
+        </select>
+      </div>
     </div>
     <div class="card-body">
-      <div class="ratio ratio-1x1">
+      <div id="chartContainer" class="ratio ratio-1x1 d-none">
         <canvas id="productChart"></canvas>
       </div>
     </div>
@@ -118,28 +127,48 @@
 <!-- Chart Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  let chart;
   const ctx = document.getElementById('productChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'pie',
-    data: {
-      labels: {{ chart_labels | safe }},
-      datasets: [{
-        label: 'Product Count',
-        data: {{ chart_data | safe }},
-        backgroundColor: [
-          '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4'
-        ],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'right'
+  const labels = {{ chart_labels | safe }};
+  const data = {{ chart_data | safe }};
+
+  const chartTypeSelector = document.getElementById('chartTypeSelector');
+  const chartContainer = document.getElementById('chartContainer');
+
+  chartTypeSelector.addEventListener('change', function () {
+    if (chart) chart.destroy();
+
+    const selectedType = this.value;
+    if (!selectedType) {
+      chartContainer.classList.add("d-none");
+      return;
+    }
+
+    chartContainer.classList.remove("d-none");
+
+    chart = new Chart(ctx, {
+      type: selectedType,
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Product Count',
+          data: data,
+          backgroundColor: [
+            '#4CAF50', '#2196F3', '#FFC107', '#FF5722',
+            '#9C27B0', '#00BCD4', '#E91E63', '#3F51B5', '#795548'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: selectedType === 'bar' ? 'top' : 'right'
+          }
         }
       }
-    }
+    });
   });
 </script>
 {% endblock %}

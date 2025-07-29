@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Sellers | Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">👤 Manage Sellers</h2>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        <!-- Add Seller Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <h5 class="card-title text-success">➕ Add New Seller</h5>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Seller Username</label>
+                            <input type="text" class="form-control" name="username" placeholder="Enter username" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Add Seller</button>
+                        <small class="text-muted">Default password is <strong>1234</strong>.</small>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Seller Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-danger">
+                <div class="card-body">
+                    <h5 class="card-title text-danger">🗑️ Delete Seller</h5>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="delete">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Select Seller</label>
+                            <select name="username" class="form-select" required>
+                                <option value="" disabled selected>Choose seller</option>
+                                {% for s in sellers %}
+                                    <option value="{{ s.username }}">{{ s.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">Delete Seller</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Sellers Table -->
+    <div class="mt-5">
+        <h4 class="mb-3">📋 Current Sellers</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sellers %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ s.username }}</td>
+                        <td>{{ s.email or 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not sellers %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No sellers found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

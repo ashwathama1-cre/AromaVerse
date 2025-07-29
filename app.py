@@ -756,35 +756,31 @@ def admin_dashboard():
         chart_data = [t[1] for t in type_counts]
 
         seller_data = db.session.query(
-         User.username.label("seller"),
-           User.email.label("email"),
-         func.count(Product.id).label("product_count")
-            ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+            User.username.label("seller"),
+            User.email.label("email"),
+            func.count(Product.id).label("product_count")
+        ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+
         commission = 0
         purchases = Purchase.query.all()
         for p in purchases:
-         
-         if 'oud' in p.product_name.lower():
-          
-          commission += 10
-         else:
-          
-          commission += 5
- 
+            if 'oud' in p.product_name.lower():
+                commission += 10
+            else:
+                commission += 5
 
+        total_unsold = db.session.query(func.sum(Product.quantity)).scalar() or 0  # Add this line
 
-      return render_template("admin_dashboard.html",
-                       total_revenue=total_revenue,
-                       total_products=total_products,
-                       total_sold=total_sold,
-                       total_sellers=total_sellers,
-                       chart_labels=chart_labels,
-                       chart_data=chart_data,
-                       seller_data=seller_data,
-                       commission=commission
-                       type_breakdown=type_breakdown 
-                             )  # ← Add this
-
+        return render_template("admin_dashboard.html",
+                               total_revenue=total_revenue,
+                               total_products=total_products,
+                               total_sold=total_sold,
+                               total_sellers=total_sellers,
+                               chart_labels=chart_labels,
+                               chart_data=chart_data,
+                               seller_data=seller_data,
+                               commission=commission,
+                               total_unsold=total_unsold)
     except Exception as e:
         import traceback
         traceback.print_exc()

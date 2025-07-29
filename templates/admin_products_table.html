@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}All Products Overview{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-4">🖼️ All Products (With Description)</h3>
+  <table class="table table-striped table-bordered align-middle">
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Price</th>
+        <th>Available Qty</th>
+        <th>Sold</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for product in products %}
+      <tr>
+        <td><img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" alt="{{ product.name }}" width="60"></td>
+        <td>{{ product.name }}</td>
+        <td>{{ product.type }}</td>
+        <td>₹{{ product.price }}</td>
+        <td>{{ product.quantity }}</td>
+        <td>{{ product.sold }}</td>
+        <td>{{ product.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="/admin_dashboard" class="btn btn-secondary mt-3">⬅ Back to Dashboard</a>
+</div>
+{% endblock %}

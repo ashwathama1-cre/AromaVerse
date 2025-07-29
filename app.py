@@ -187,12 +187,19 @@ with app.app_context():
 
 
 # insert 
-def insert_attar_products():
-    seller = User.query.filter_by(username='shaurya').first()
-    if not seller:
-        print("Seller 'shaurya' not found.")
-        return
+import uuid
 
+def insert_attar_products():
+    from app import db, Product, User  # ✅ moved inside to avoid circular import
+
+    # Ensure a default seller exists
+    seller = User.query.filter_by(username="admin_seller").first()
+    if not seller:
+        seller = User(username="admin_seller", email="admin@attar.com", role="seller", password="1234")
+        db.session.add(seller)
+        db.session.commit()
+
+    # Sample attars
     attars = [
         {
             "name": "Rose Attar",
@@ -287,13 +294,12 @@ def insert_attar_products():
                 unit='ml',
                 image=a['image'],
                 description=a['description'],
-                seller_id=seller.id
+                seller_id=seller.id  # ✅ Now safe to use
             )
             db.session.add(new_product)
 
     db.session.commit()
     print("✅ Sample attar products inserted.")
-
 
 
 

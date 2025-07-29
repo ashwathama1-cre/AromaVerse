@@ -828,7 +828,7 @@ def admin_product_stats():
 @role_required('admin')
 def admin_products_table():
     products = Product.query.all()
-    return render_template('admin_products_table.html', products=products_
+    return render_template('admin_products_table.html', products=products)
 # admin change username
                            
 @app.route('/change_name', methods=['GET', 'POST'])

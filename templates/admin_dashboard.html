@@ -7,91 +7,106 @@
   <h2 class="mb-4">📊 Admin Dashboard</h2>
 
   <!-- Summary Cards -->
-  <div class="row mb-4 text-center">
-    <div class="col-md-3 mb-2">
-      <div class="card shadow-sm p-3">
-        <h5>Total Revenue</h5>
-        <p class="text-success fw-bold">₹{{ total_revenue }}</p>
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card shadow-sm border-start border-success border-4">
+        <div class="card-body">
+          <h6>Total Revenue</h6>
+          <p class="text-success fw-bold">₹{{ "{:,.2f}".format(total_revenue) }}</p>
+        </div>
       </div>
     </div>
-    <div class="col-md-3 mb-2">
-      <div class="card shadow-sm p-3">
-        <h5>Total Products</h5>
-        <p class="fw-bold">{{ total_products }}</p>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-start border-primary border-4">
+        <div class="card-body">
+          <h6>Total Products</h6>
+          <p class="fw-bold">{{ total_products }}</p>
+        </div>
       </div>
     </div>
-    <div class="col-md-3 mb-2">
-      <div class="card shadow-sm p-3">
-        <h5>Total Sold</h5>
-        <p class="fw-bold">{{ total_sold }}</p>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-start border-warning border-4">
+        <div class="card-body">
+          <h6>Total Quantity Sold</h6>
+          <p class="fw-bold">{{ total_sold }}</p>
+        </div>
       </div>
     </div>
-    <div class="col-md-3 mb-2">
-      <div class="card shadow-sm p-3">
-        <h5>Total Sellers</h5>
-        <p class="fw-bold">{{ total_sellers }}</p>
+    <div class="col-md-3">
+      <div class="card shadow-sm border-start border-info border-4">
+        <div class="card-body">
+          <h6>Total Sellers</h6>
+          <p class="fw-bold">{{ total_sellers }}</p>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Pie Chart -->
-  <div class="row mb-5">
-    <div class="col-md-6 mx-auto">
-      <canvas id="productChart"></canvas>
+  <div class="card mb-4">
+    <div class="card-header">
+      📈 Product Type Distribution
+    </div>
+    <div class="card-body">
+      <div class="ratio ratio-1x1">
+        <canvas id="productChart"></canvas>
+      </div>
     </div>
   </div>
 
-  <!-- Seller Overview -->
-  <h4 class="mb-3">🛍️ Seller Overview</h4>
-  <div class="table-responsive">
-    <table class="table table-bordered table-hover">
-      <thead class="table-light">
-        <tr>
-          <th>Seller Name</th>
-          <th>Email</th>
-          <th>Total Products</th>
-          <!-- Optional: <th>Profile</th> -->
-        </tr>
-      </thead>
-      <tbody>
-        {% for seller in seller_data %}
-        <tr>
-          <td>{{ seller.seller }}</td>
-          <td>{{ seller.email }}</td>
-          <td>{{ seller.product_count }}</td>
-          <!-- Optional: <td><a href="/seller/{{ seller.id }}">View</a></td> -->
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Seller Table -->
+  <div class="card">
+    <div class="card-header">
+      👤 Sellers Overview
+    </div>
+    <div class="card-body table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Seller</th>
+            <th>Email</th>
+            <th>Total Products</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for seller in seller_data %}
+          <tr>
+            <td>{{ seller.seller }}</td>
+            <td>{{ seller.email }}</td>
+            <td>{{ seller.product_count or 0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<!-- Chart JS -->
+<!-- Chart Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('productChart');
-new Chart(ctx, {
-  type: 'pie',
-  data: {
-    labels: {{ chart_labels | safe }},
-    datasets: [{
-      label: 'Product Distribution',
-      data: {{ chart_data | safe }},
-      backgroundColor: [
-        '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', '#f67019'
-      ],
-      borderWidth: 1
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'bottom'
+  const ctx = document.getElementById('productChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: {{ chart_labels | safe }},
+      datasets: [{
+        label: 'Product Count',
+        data: {{ chart_data | safe }},
+        backgroundColor: [
+          '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'right'
+        }
       }
     }
-  }
-});
+  });
 </script>
 {% endblock %}

@@ -151,11 +151,11 @@ def insert_fake_data():
 # ------------------ App Context Init ------------------
 
 with app.app_context():
-   if os.environ.get("FLASK_ENV") == "development" and os.path.exists("users.db"):
-
+    if os.environ.get("FLASK_ENV") == "development" and os.path.exists("users.db"):
         os.remove("users.db")  # Only deletes DB in development mode
 
     db.create_all()
+
 
     # Create admin user if not exists
     if not User.query.filter_by(username='admin').first():

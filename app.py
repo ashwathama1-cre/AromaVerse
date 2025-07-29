@@ -579,24 +579,22 @@ def cart():
 @login_required
 @role_required('admin')
 def admin_dashboard():
-    # ✅ Use correct models and fields
     total_revenue = db.session.query(func.sum(Purchase.price)).scalar() or 0
     total_products = Product.query.count()
     total_sold = db.session.query(func.sum(Product.sold)).scalar() or 0
     total_sellers = User.query.filter_by(role='seller').count()
 
-    # ✅ Product pie chart data
+    # Product type distribution for pie chart
     type_counts = db.session.query(Product.type, func.count(Product.id)).group_by(Product.type).all()
     chart_labels = [t[0] for t in type_counts]
     chart_data = [t[1] for t in type_counts]
 
-    # ✅ Seller overview from User table
+    # Seller overview
     seller_data = db.session.query(
-      User.username.label("seller"),
-       User.email,
-       func.count(Product.id).label("product_count")
-           ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
-
+        User.username.label("seller"),
+        User.email,
+        func.count(Product.id).label("product_count")
+    ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
 
     return render_template("admin_dashboard.html",
                            total_revenue=total_revenue,

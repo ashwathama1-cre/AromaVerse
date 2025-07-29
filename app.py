@@ -158,6 +158,11 @@ def insert_fake_data():
 # (your route code goes here...)
 
 
+@app.route("/insert_attars")
+@role_required("admin")
+def trigger_insertion():
+    insert_attar_products()
+    return "✅ Sample attars inserted."
 
 
 

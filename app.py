@@ -592,9 +592,11 @@ def admin_dashboard():
 
     # ✅ Seller overview from User table
     seller_data = db.session.query(
-        User.username.label("seller"),
-        func.count(Product.id).label("product_count")
-    ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+      User.username.label("seller"),
+       User.email,
+       func.count(Product.id).label("product_count")
+           ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+
 
     return render_template("admin_dashboard.html",
                            total_revenue=total_revenue,

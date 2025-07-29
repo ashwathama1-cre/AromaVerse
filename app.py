@@ -521,15 +521,33 @@ def edit_product(id):
 
     return render_template('edit_product.html', product=product)
 
+
+
+# filter product tpe
+def filter_products_by_type(products, scent_type):
+    if not scent_type:
+        return products
+    return [p for p in products if p.scent_type.lower() == scent_type.lower()]
+
+
 # ------------------------- Buyer Dashboard -------------------------
 @app.route('/buyer_dashboard')
 @login_required
 @role_required('buyer')
 def buyer_dashboard():
-    all_products = Product.query.all()
-    scent_filter = request.args.get('filter')
-    filtered = filter_products_by_type(all_products, scent_filter)
-    return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)
+    try:
+        all_products = Product.query.all()
+        scent_filter = request.args.get('filter')
+
+        if scent_filter:
+            filtered = [p for p in all_products if p.scent_type == scent_filter]
+        else:
+            filtered = all_products
+
+        return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)
+    except Exception as e:
+        print("Error in /buyer_dashboard:", e)
+        return "Something went wrong in buyer dashboard", 500
 
 # ------------------------- Add to Cart -------------------------
 @app.route('/add_to_cart/<id>')

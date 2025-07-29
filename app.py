@@ -408,20 +408,21 @@ def forgot_password():
 @login_required
 def change_password():
     if request.method == 'POST':
-        current = request.form['current']
-        new = request.form['new']
-        confirm = request.form['confirm']
+        current = request.form['current_password']
+        new = request.form['new_password']
+        confirm = request.form['confirm_password']
         user = User.query.filter_by(username=session['username']).first()
 
         if user and check_password_hash(user.password, current):
             if new == confirm:
                 user.password = generate_password_hash(new)
                 db.session.commit()
-                flash('Password changed!', 'success')
+                return render_template('change_password.html', success="Password changed successfully!")
             else:
-                flash('New passwords do not match!', 'danger')
+                return render_template('change_password.html', error="New passwords do not match.")
         else:
-            flash('Current password incorrect!', 'danger')
+            return render_template('change_password.html', error="Current password is incorrect.")
+    
     return render_template('change_password.html')
 
 

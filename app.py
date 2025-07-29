@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -577,25 +578,23 @@ def cart():
 @app.route('/admin_dashboard')
 @login_required
 @role_required('admin')
-
 def admin_dashboard():
-    # Get values from DB
-    total_revenue = db.session.query(func.sum(Order.total_amount)).scalar() or 0
+    # ✅ Use correct models and fields
+    total_revenue = db.session.query(func.sum(Purchase.price)).scalar() or 0
     total_products = Product.query.count()
-    total_sold = db.session.query(func.sum(Product.sold_quantity)).scalar() or 0
-    total_sellers = Seller.query.count()
+    total_sold = db.session.query(func.sum(Product.sold)).scalar() or 0
+    total_sellers = User.query.filter_by(role='seller').count()
 
-    # Product pie chart data
+    # ✅ Product pie chart data
     type_counts = db.session.query(Product.type, func.count(Product.id)).group_by(Product.type).all()
     chart_labels = [t[0] for t in type_counts]
     chart_data = [t[1] for t in type_counts]
 
-    # Seller overview
+    # ✅ Seller overview from User table
     seller_data = db.session.query(
-        Seller.name.label("seller"),
-        Seller.email,
+        User.username.label("seller"),
         func.count(Product.id).label("product_count")
-    ).join(Product, Product.seller_id == Seller.id).group_by(Seller.id).all()
+    ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
 
     return render_template("admin_dashboard.html",
                            total_revenue=total_revenue,
@@ -605,8 +604,6 @@ def admin_dashboard():
                            chart_labels=chart_labels,
                            chart_data=chart_data,
                            seller_data=seller_data)
-
-
 @app.route('/product_charts')
 @login_required
 @role_required('admin')

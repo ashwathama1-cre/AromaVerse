@@ -18,13 +18,21 @@
     <tbody>
       {% for product in products %}
       <tr>
-        <td><img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" alt="{{ product.name }}" width="60"></td>
+        <td>
+          <a href="{{ url_for('static', filename='uploads/' ~ product.image) }}" target="_blank">
+            <img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" alt="{{ product.name }}" width="60">
+          </a>
+        </td>
         <td>{{ product.name }}</td>
         <td>{{ product.type }}</td>
         <td>₹{{ product.price }}</td>
-        <td>{{ product.quantity }}</td>
+        <td class="{{ 'text-danger fw-bold' if product.quantity == 0 else '' }}">
+          {{ product.quantity }}
+        </td>
         <td>{{ product.sold }}</td>
-        <td>{{ product.description }}</td>
+        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ product.description }}">
+          {{ product.description }}
+        </td>
       </tr>
       {% endfor %}
     </tbody>

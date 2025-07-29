@@ -153,36 +153,11 @@ def insert_fake_data():
         logging.error(f"Error inserting fake data: {str(e)}")
 
 # ------------------ App Context Init ------------------
-
-with app.app_context():
-    if os.environ.get("FLASK_ENV") == "development" and os.path.exists("users.db"):
-        os.remove("users.db")  # Only deletes DB in development mode
-
-    db.create_all()
-
-
-    # Create admin user if not exists
-    if not User.query.filter_by(username='admin').first():
-        hashed_pw = generate_password_hash('1234')
-        admin = User(username='admin', password=hashed_pw, role='admin', email='admin@example.com')
-        db.session.add(admin)
-
-    # ✅ Add shaurya seller user
-    if not User.query.filter_by(username='shaurya').first():
-        hashed_pw = generate_password_hash('12345678')
-        shaurya = User(username='shaurya', password=hashed_pw, role='seller', email='shaurya@example.com')
-        db.session.add(shaurya)
-
-    db.session.commit()
-
-    # Insert sample products
-    insert_fake_data()
-    insert_attar_products()
-
- 
-
-
 # ------------------ Routes ------------------
+
+# (your route code goes here...)
+
+
 
 
 
@@ -300,6 +275,39 @@ def insert_attar_products():
 
     db.session.commit()
     print("✅ Sample attar products inserted.")
+
+
+# ------------------ Insert Sample Products ------------------
+
+with app.app_context():
+    if os.environ.get("FLASK_ENV") == "development" and os.path.exists("users.db"):
+        os.remove("users.db")
+
+    db.create_all()
+
+    if not User.query.filter_by(username='admin').first():
+        hashed_pw = generate_password_hash('1234')
+        admin = User(username='admin', password=hashed_pw, role='admin', email='admin@example.com')
+        db.session.add(admin)
+
+    if not User.query.filter_by(username='shaurya').first():
+        hashed_pw = generate_password_hash('12345678')
+        shaurya = User(username='shaurya', password=hashed_pw, role='seller', email='shaurya@example.com')
+        db.session.add(shaurya)
+
+    db.session.commit()
+
+    # ✅ Call after functions are defined
+    insert_fake_data()
+    insert_attar_products()
+
+
+ 
+
+
+# ------------------ Routes ------------------
+
+
 
 
 

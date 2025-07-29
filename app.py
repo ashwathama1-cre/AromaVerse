@@ -621,10 +621,11 @@ def admin_dashboard():
         chart_data = [t[1] for t in type_counts]
 
         seller_data = db.session.query(
-            User.username.label("seller"),
-            
-            func.count(Product.id).label("product_count")
-        ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+         User.username.label("seller"),
+           User.email.label("email"),
+         func.count(Product.id).label("product_count")
+            ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+
 
         return render_template("admin_dashboard.html",
                                total_revenue=total_revenue,

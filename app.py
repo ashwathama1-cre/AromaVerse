@@ -806,6 +806,56 @@ def admin_dashboard():
         traceback.print_exc()
         return f"<h2>Internal Error in /admin_dashboard:</h2><pre>{str(e)}</pre>", 500
 
+#>>>>>>>>>>>>>>>>>>>>>> admin work 
+# ✅ Product stats table by type
+@app.route('/admin/product_stats')
+@login_required
+@role_required('admin')
+def admin_product_stats():
+    type_counts = db.session.query(
+        Product.type,
+        func.count(Product.id).label('count'),
+        func.sum(Product.quantity).label('remaining')
+    ).group_by(Product.type).all()
+
+    return render_template('admin_product_stats.html', type_counts=type_counts)
+
+
+# ✅ All products in tabular form
+@app.route('/admin/products_table')
+@login_required
+@role_required('admin')
+def admin_products_table():
+    products = Product.query.all()
+    return render_template('admin_products_table.html', products=products_
+# admin change username
+                           
+@app.route('/change_name', methods=['GET', 'POST'])
+@login_required
+def change_name():
+    user = User.query.filter_by(username=session['username']).first()
+
+    if request.method == 'POST':
+        new_name = request.form['new_name']
+
+        # Check if new username is unique
+        existing_user = User.query.filter_by(username=new_name).first()
+        if existing_user:
+            flash("Username already taken. Please choose another.", "warning")
+        else:
+            old_name = user.username
+            user.username = new_name
+            session['username'] = new_name  # Update session
+            db.session.commit()
+            flash("Username changed successfully!", "success")
+            logging.info(f"{old_name} changed their username to {new_name}")
+            return redirect(url_for('change_name'))
+
+    return render_template('change_name.html', current_username=user.username)
+
+
+
+
 # product chart 
 @app.route('/product_charts')
 @login_required

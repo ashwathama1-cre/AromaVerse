@@ -64,16 +64,18 @@ class User(db.Model):
 
 
 class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
     description = db.Column(db.Text)
-    price = db.Column(db.Float)
-    image = db.Column(db.String(200))  # likely this is the correct field
+    image = db.Column(db.String)
     quantity = db.Column(db.Integer)
-    sold = db.Column(db.Integer)
+    sold = db.Column(db.Integer, default=0)
+    price = db.Column(db.Float)
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    seller = db.relationship('User', backref='products')
+
+    # ✅ ADD THIS:
+    unit = db.Column(db.String(10))
 
 
 class CartItem(db.Model):

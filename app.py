@@ -604,8 +604,10 @@ def seller_detail(seller_id):
 
 
 #####>>>>>>>>>>>>>>>>>>>manage seller
-@app.route("/manage_sellers")
-def manage_sellers():
+@app.route("/seller_overview")
+@login_required
+@role_required('admin')
+def seller_overview():
     sellers = Seller.query.all()
     seller_counts = {}
     seller_ids = {}
@@ -614,6 +616,7 @@ def manage_sellers():
         seller_counts[s.username] = count
         seller_ids[s.username] = s.id
     return render_template("manage_sellers.html", seller_counts=seller_counts, seller_ids=seller_ids)
+
 
 
 
@@ -962,7 +965,6 @@ def manage_sellers():
         db.session.commit()
     sellers = User.query.filter_by(role='seller').all()
     return render_template("seller_manage.html", sellers=sellers)
-
 
 @app.route('/product_type_overview')
 @login_required

@@ -582,27 +582,28 @@ def seller_dashboard():
     return render_template("seller_dashboard.html", products=products, notifications=notifications)
 #>>>>>>>>>>selller data 
 
-@app.route('/admin/seller_detail/<int:seller_id>')
+@app.route("/admin/seller_detail/<seller_id>")
 @login_required
 @role_required('admin')
 def seller_detail(seller_id):
-    try:
-        seller = User.query.get(seller_id)
-        if not seller or seller.role != 'seller':
-            return jsonify({"error": "Seller not found"}), 404
+    seller = User.query.get(seller_id)
+    if not seller:
+        return jsonify({"error": "Seller not found"}), 404
 
-        products = Product.query.filter_by(seller_id=seller_id).all()
-        total_products = len(products)
-        total_sold = sum(p.sold for p in products)
-        revenue = sum(p.sold * p.price for p in products)
+    total_products = Product.query.filter_by(seller_id=seller_id).count()
+    total_sold = db.session.query(db.func.sum(Product.quantity_sold)).filter_by(seller_id=seller_id).scalar() or 0
+    revenue = db.session.query(
+        db.func.sum(Product.quantity_sold * Product.price)
+    ).filter_by(seller_id=seller_id).scalar() or 0
 
-        return jsonify({
-            "name": seller.username,
-            "email": seller.email,
-            "total_products": total_products,
-            "total_sold": total_sold,
-            "revenue": revenue
-        })
+    return jsonify({
+        "name": seller.username,
+        "email": seller.email,
+        "total_products": total_products,
+        "total_sold": total_sold,
+        "revenue": float(revenue)
+    })
+
     except Exception as e:
         print("Error fetching seller:", e)
         return jsonify({"error": "Internal Server Error"}), 500

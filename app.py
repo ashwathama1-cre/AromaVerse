@@ -280,18 +280,20 @@ def insert_attar_products():
     ]
 
     for a in attars:
-        if not Product.query.filter_by(name=a['name']).first():
-            new_product = Product(
-                id=str(uuid.uuid4()),
-                name=a['name'],
-                type=a['type'],
-                price=a['price'],
-                quantity=a['quantity'],
-                unit='ml',
-                image=a['image'],
-                description=a['description'],
-                seller_id=seller.id  # ✅ Now safe to use
-            )
+     
+     if not Product.query.filter_by(name=a['name']).first():
+      
+      new_product = Product(
+      name=a['name'],
+      type=a['type'],
+      price=a['price'],
+      quantity=a['quantity'],
+      unit='ml',
+      image=a['image'],
+      description=a['description'],
+      seller_id=seller.id
+                         )
+
             db.session.add(new_product)
 
     db.session.commit()

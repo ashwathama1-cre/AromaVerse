@@ -935,21 +935,29 @@ def change_name():
 @login_required
 @role_required('admin')
 def admin_products_json():
-    try:
-        products = Product.query.all()
-        product_list = []
-        for p in products:
-            product_list.append({
-                "image": p.image or "/static/default.png",  # fallback image
-                "name": p.name,
-                "type": p.type,
-                "description": p.description or "",
-                "seller": p.seller.username,
-                "left": p.quantity,
-                "sold": p.sold,
-                "price": p.price
-            })
-        return jsonify(product_list)
+    products = Product.query.all()
+    product_list = []
+    for p in products:
+        image_url = url_for('static', filename='images/' + (p.image or 'default.jpg'))
+        
+        # Calculate commission as 10% of sold revenue
+        total_revenue = p.price * p.sold
+        commission = round(total_revenue * 0.10, 2)
+
+        product_list.append({
+            "image": image_url,
+            "name": p.name,
+            "type": p.type,
+            "description": p.description or "N/A",
+            "seller": p.seller.username,
+            "left": p.quantity,
+            "sold": p.sold,
+            "price": p.price,
+            "revenue": total_revenue,
+            "commission": commission
+        })
+    return jsonify(product_list)
+
     except Exception as e:
         print("Error in /admin/products_json:", e)
         return jsonify([]), 500

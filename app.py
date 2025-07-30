@@ -864,17 +864,35 @@ def admin_dashboard():
         total_sold = db.session.query(func.sum(Product.sold)).scalar() or 0
         total_sellers = User.query.filter_by(role='seller').count()
 
+        # Chart Data: Count products by type
         type_counts = db.session.query(Product.type, func.count(Product.id)).group_by(Product.type).all()
         chart_labels = [t[0] for t in type_counts]
         chart_data = [t[1] for t in type_counts]
 
+        # Seller Overview Table
         seller_data = db.session.query(
-             User.id.label("id"),
-             User.username.label("seller"),
-             User.email.label("email"),
+            User.id.label("id"),
+            User.username.label("seller"),
+            User.email.label("email"),
             func.count(Product.id).label("product_count")
-                            ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+        ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
 
+        # 🆕 Fetch all products with seller name for table display
+        products = db.session.query(
+           Product.id,
+           Product.image,
+           Product.name,
+           Product.type,
+           Product.description,
+           Product.price,
+           Product.quantity,
+           Product.sold,
+           Product.seller_id,
+           User.username.label("seller_name")
+                       ).outerjoin(User, Product.seller_id == User.id).all()
+           
+
+        # Commission Logic
         commission = 0
         purchases = Purchase.query.all()
         for p in purchases:
@@ -883,7 +901,7 @@ def admin_dashboard():
             else:
                 commission += 5
 
-        total_unsold = db.session.query(func.sum(Product.quantity)).scalar() or 0  # Add this line
+        total_unsold = db.session.query(func.sum(Product.quantity)).scalar() or 0
 
         return render_template("admin_dashboard.html",
                                total_revenue=total_revenue,
@@ -894,11 +912,14 @@ def admin_dashboard():
                                chart_data=chart_data,
                                seller_data=seller_data,
                                commission=commission,
-                               total_unsold=total_unsold)
+                               total_unsold=total_unsold,
+                               products=products)  # Pass products to template
+
     except Exception as e:
         import traceback
         traceback.print_exc()
         return f"<h2>Internal Error in /admin_dashboard:</h2><pre>{str(e)}</pre>", 500
+
 
 #>>>>>>>>>>>>>>>>>>>>>> admin work 
 # ✅ Product stats table by type

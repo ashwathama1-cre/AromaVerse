@@ -64,23 +64,24 @@ class User(db.Model):
 
 
 class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # 🔧 Changed to Integer
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # ✅ Use Integer auto ID
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     sold = db.Column(db.Integer, default=0)
-    unit = db.Column(db.String(10))         
-    image = db.Column(db.String(100))       
-    description = db.Column(db.Text)        
+    unit = db.Column(db.String(10))
+    image = db.Column(db.String(100))
+    description = db.Column(db.Text)
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)  # ✅ FIXED
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)  # ✅ Make sure it's Integer
     quantity = db.Column(db.Integer, default=1)
+    product = db.relationship('Product', backref='cart_items', lazy=True)
+
 
     # Relationship
     product = db.relationship('Product', backref='cart_items', lazy=True)
@@ -164,6 +165,13 @@ def insert_fake_data():
 # ------------------ Routes ------------------
 
 # (your route code goes here...)
+
+@app.route('/reset_db')
+def reset_db():
+    db.drop_all()
+    db.create_all()
+    return "Database reset."
+
 
 
 @app.route("/insert_attars")
@@ -650,49 +658,35 @@ def promote_user(user_id):
 
 
 @app.route('/add_product', methods=['POST'])
-@login_required
 @role_required('seller')
 def add_product():
     name = request.form['name']
+    type = request.form['type']
     price = float(request.form['price'])
     quantity = int(request.form['quantity'])
-    type_ = request.form['type']
     unit = request.form['unit']
-    description = request.form.get('description', '')
     image = request.files['image']
+    filename = secure_filename(image.filename)
+    image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    description = request.form.get('description')
+    seller_id = get_current_user().id  # Assuming you're fetching logged-in seller
 
-    if image and allowed_file(image.filename):
-        filename = secure_filename(f"{uuid.uuid4().hex}_{image.filename}")
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        image.save(filepath)
-        image_path = f"/static/uploads/{filename}"
-    else:
-        flash('❌ Invalid image file!', 'danger')
-        return redirect('/seller_dashboard')
-
-    seller = User.query.filter_by(username=session['username']).first()
-    if not seller:
-        flash('❌ Seller not found.', 'danger')
-        return redirect('/seller_dashboard')
-
+    # ✅ Automatically assign ID
     new_product = Product(
-        id=str(uuid.uuid4()),
         name=name,
+        type=type,
         price=price,
         quantity=quantity,
-        sold=0,
-        type=type_,
         unit=unit,
-        image=image_path,
-        seller_id=seller.id,
-        description=description
+        image=filename,
+        description=description,
+        seller_id=seller_id
     )
-
     db.session.add(new_product)
     db.session.commit()
-    flash('✅ Product added successfully!', 'success')
-    return redirect('/seller_dashboard')
 
+    flash("✅ Product added successfully", "success")
+    return redirect('/seller_dashboard')
 
 
 #---------------get selller detail----------------

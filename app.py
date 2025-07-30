@@ -604,9 +604,13 @@ def seller_detail(seller_id):
         "revenue": float(revenue)
     })
 
+    try:
+     
+     some_code_here()
     except Exception as e:
-        print("Error fetching seller:", e)
-        return jsonify({"error": "Internal Server Error"}), 500
+     
+     print(e)
+
 
 
 

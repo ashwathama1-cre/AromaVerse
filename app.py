@@ -294,7 +294,7 @@ def insert_attar_products():
       seller_id=seller.id
                          )
 
-            db.session.add(new_product)
+    db.session.add(new_product)
 
     db.session.commit()
     print("✅ Sample attar products inserted.")

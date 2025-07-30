@@ -582,22 +582,26 @@ def seller_dashboard():
     return render_template("seller_dashboard.html", products=products, notifications=notifications)
 #>>>>>>>>>>selller data 
 
-
-@app.route("/admin/seller_detail/<int:seller_id>")
+@app.route('/admin/seller_detail/<int:seller_id>')
 def seller_detail(seller_id):
-    seller = Seller.query.get_or_404(seller_id)
-    products = Product.query.filter_by(seller_id=seller.id).all()
-    total_sales = sum(p.quantity_sold for p in products)
+    seller = User.query.get(seller_id)
+    if not seller:
+        return jsonify({"error": "Not found"}), 404
+
+    total_products = Product.query.filter_by(seller_id=seller_id).count()
+    total_sold = db.session.query(func.sum(Product.sold)).filter_by(seller_id=seller_id).scalar() or 0
+
+    # Correct revenue computation using expression
+    revenue = db.session.query(func.sum(Product.sold * Product.price)).filter_by(seller_id=seller_id).scalar()
+    if revenue is None:
+        revenue = 0
 
     return jsonify({
-        "name": seller.name,
+        "name": seller.username,
         "email": seller.email,
-        "address": seller.address,
-        "aadhar": seller.aadhar,
-        "photo": url_for('static', filename=f'uploads/{seller.photo}'),
-        "product_count": len(products),
-        "total_sales": total_sales,
-        "joined": seller.created_at.strftime("%Y-%m-%d")
+        "total_products": total_products,
+        "total_sold": total_sold,
+        "revenue": round(revenue, 2)
     })
 
 
@@ -924,19 +928,25 @@ def change_name():
     return render_template('change_name.html', current_username=user.username)
 
 #>>>>>>>>>>>>>>>>>>>>>>>>adminn product j
-@app.route("/admin/products_json")
+@app.route('/admin/products_json')
+@login_required
+@role_required('admin')
 def admin_products_json():
     products = Product.query.all()
-    data = [{
-        "image": url_for('static', filename=f'uploads/{p.image}'),
-        "name": p.name,
-        "type": p.type,
-        "seller": p.seller_name,
-        "left": p.quantity_left,
-        "sold": p.quantity_sold,
-        "price": p.price
-    } for p in products]
-    return jsonify(data)
+    product_list = []
+    for p in products:
+        product_list.append({
+            "image": p.image_url,
+            "name": p.name,
+            "type": p.type,
+            "description": p.description,  # <- include this
+            "seller": p.seller.username,
+            "left": p.quantity_left,
+            "sold": p.quantity_sold,
+            "price": p.price
+        })
+    return jsonify(product_list)
+
 
 
 

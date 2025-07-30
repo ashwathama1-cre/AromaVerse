@@ -64,23 +64,27 @@ class User(db.Model):
 
 
 class Product(db.Model):
-    id = db.Column(db.String, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # 🔧 Changed to Integer
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     sold = db.Column(db.Integer, default=0)
-    unit = db.Column(db.String(10))         # ✅ NEW FIELD
-    image = db.Column(db.String(100))       # ✅ NEW FIELD
-    description = db.Column(db.Text)        # ✅ NEW FIELD
+    unit = db.Column(db.String(10))         
+    image = db.Column(db.String(100))       
+    description = db.Column(db.Text)        
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
-    product_id = db.Column(db.String(36), db.ForeignKey('product.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)  # ✅ FIXED
     quantity = db.Column(db.Integer, default=1)
+
+    # Relationship
     product = db.relationship('Product', backref='cart_items', lazy=True)
+
 
 class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -797,27 +801,41 @@ def buyer_dashboard():
         return "Something went wrong in buyer dashboard", 500
 
 # ------------------------- Add to Cart -------------------------
-@app.route('/add_to_cart/<id>')
+@app.route('/add_to_cart/<int:id>')
 @login_required
 @role_required('buyer')
 def add_to_cart(id):
-    username = session['username']
-    product = Product.query.get(id)
+    username = session.get('username')
 
-    if not product:
-        flash("❌ Product not found", "danger")
+    try:
+        product = Product.query.get_or_404(id)
+
+        # Check if product has stock
+        if product.quantity <= 0:
+            flash("⚠️ This product is out of stock.", "warning")
+            return redirect('/buyer_dashboard')
+
+        # Add or update cart item
+        existing_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
+        if existing_item:
+            if product.quantity >= existing_item.quantity + 1:
+                existing_item.quantity += 1
+            else:
+                flash("⚠️ Not enough stock available.", "warning")
+                return redirect('/cart')
+        else:
+            new_item = CartItem(buyer_username=username, product_id=id, quantity=1)
+            db.session.add(new_item)
+
+        db.session.commit()
+        flash(f"✅ {product.name} added to cart!", "success")
+        return redirect('/cart')
+
+    except Exception as e:
+        print("Add to Cart Error:", e)
+        flash("❌ Failed to add product to cart.", "danger")
         return redirect('/buyer_dashboard')
 
-    existing_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
-    if existing_item:
-        existing_item.quantity += 1
-    else:
-        new_item = CartItem(buyer_username=username, product_id=id, quantity=1)
-        db.session.add(new_item)
-
-    db.session.commit()
-    flash(f"✅ {product.name} added to cart!", "success")
-    return redirect('/cart')
 
 # ------------------------- View Cart -------------------------
 @app.route('/cart')
@@ -1046,6 +1064,15 @@ def product_sales_summary():
             'revenue': p.sold * p.price
         })
     return render_template('product_sales_summary.html', summary=summary)
+
+
+#>>>>>>>>>>>>>product detail>>>>>>>>>>>>
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = Product.query.get_or_404(product_id)
+    return render_template('product_detail.html', product=product)
+
+
 
 
 def seller_product_counts():

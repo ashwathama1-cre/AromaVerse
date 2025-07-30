@@ -963,9 +963,14 @@ def admin_products_json():
         })
     return jsonify(product_list)
 
+    try:
+     
+     
+    # whatever code you're trying to run that may fail
+     some_code_here()
     except Exception as e:
-        print("Error in /admin/products_json:", e)
-        return jsonify([]), 500
+     
+     print("Error occurred:", e)
 
 
 # product chart 

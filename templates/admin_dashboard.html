@@ -105,10 +105,15 @@
               <th>Qty Left</th>
               <th>Qty Sold</th>
               <th>Price</th>
+              <th>Revenue</th>
+              <th>Commission</th>
             </tr>
           </thead>
           <tbody id="product-desc-body"></tbody>
         </table>
+        <p class="mt-3 fw-bold text-success">
+          Total Admin Commission from Products: ₹<span id="total-commission">0</span>
+        </p>
       </div>
     </div>
   </div>
@@ -216,7 +221,9 @@
         .then(products => {
           const body = document.getElementById('product-desc-body');
           body.innerHTML = '';
+          let totalCommission = 0;
           products.forEach(p => {
+            totalCommission += p.commission;
             body.innerHTML += `
               <tr>
                 <td><img src="${p.image || '/static/default.png'}" width="50"/></td>
@@ -227,9 +234,12 @@
                 <td>${p.left}</td>
                 <td>${p.sold}</td>
                 <td>₹${p.price}</td>
+                <td>₹${p.revenue.toFixed(2)}</td>
+                <td>₹${p.commission.toFixed(2)}</td>
               </tr>
             `;
           });
+          document.getElementById("total-commission").textContent = totalCommission.toFixed(2);
         });
     } else {
       desc.classList.add('d-none');

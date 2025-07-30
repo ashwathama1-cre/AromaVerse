@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <!-- More Stats -->
+  <!-- Additional Stats -->
   <div class="row mb-4">
     <div class="col-md-6">
       <div class="card border-start border-primary border-4 shadow-sm">
@@ -139,7 +139,7 @@
   </div>
 </div>
 
-<!-- Seller Modal -->
+<!-- Seller Detail Modal -->
 <div class="modal fade" id="sellerModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -158,7 +158,7 @@
   </div>
 </div>
 
-<!-- Scripts -->
+<!-- Chart + Modal Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   let chart;
@@ -183,7 +183,10 @@
         datasets: [{
           label: 'Product Count',
           data: data,
-          backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4', '#E91E63'],
+          backgroundColor: [
+            '#4CAF50', '#2196F3', '#FFC107', '#FF5722',
+            '#9C27B0', '#00BCD4', '#E91E63', '#3F51B5', '#795548'
+          ],
           borderWidth: 1
         }]
       },
@@ -216,7 +219,7 @@
           products.forEach(p => {
             body.innerHTML += `
               <tr>
-                <td><img src="${p.image}" width="50"/></td>
+                <td><img src="${p.image || '/static/default.png'}" width="50"/></td>
                 <td>${p.name}</td>
                 <td>${p.type}</td>
                 <td>${p.description || 'No description'}</td>

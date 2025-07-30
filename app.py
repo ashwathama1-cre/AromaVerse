@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 
+from flask import jsonify
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -975,38 +976,46 @@ def change_name():
 @login_required
 @role_required('admin')
 def admin_products_json():
-    products = Product.query.all()
-    product_list = []
-    for p in products:
-        image_url = url_for('static', filename='images/' + (p.image or 'default.jpg'))
-        
-        # Calculate commission as 10% of sold revenue
-        total_revenue = p.price * p.sold
-        commission = round(total_revenue * 0.10, 2)
-
-        product_list.append({
-            "image": image_url,
-            "name": p.name,
-            "type": p.type,
-            "description": p.description or "N/A",
-            "seller": p.seller.username,
-            "left": p.quantity,
-            "sold": p.sold,
-            "price": p.price,
-            "revenue": total_revenue,
-            "commission": commission
-        })
-    return jsonify(product_list)
-
     try:
-     
-     
-    # whatever code you're trying to run that may fail
-     some_code_here()
-    except Exception as e:
-     
-     print("Error occurred:", e)
+        products = db.session.query(
+            Product.id,
+            Product.name,
+            Product.type,
+            Product.description,
+            Product.image,
+            Product.price,
+            Product.quantity,
+            Product.sold,
+            User.username.label("seller_name")
+        ).outerjoin(User, Product.seller_id == User.id).all()
 
+        product_list = []
+
+        for p in products:
+            quantity_left = p.quantity
+            revenue = p.price * p.sold
+            commission = 10 * p.sold if 'oud' in (p.name or '').lower() else 5 * p.sold
+
+            product_list.append({
+                "id": p.id,
+                "name": p.name,
+                "type": p.type,
+                "description": p.description or "No description provided",
+                "image": url_for('static', filename='uploads/' + p.image) if p.image else "/static/default.png",
+                "price": p.price,
+                "left": quantity_left,
+                "sold": p.sold,
+                "revenue": revenue,
+                "commission": commission,
+                "seller": p.seller_name or "Unknown Seller"
+            })
+
+        return jsonify(product_list)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 # product chart 
 @app.route('/product_charts')

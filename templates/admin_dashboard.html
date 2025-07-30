@@ -6,22 +6,82 @@
 
   <!-- Summary Cards -->
   <div class="row mb-4">
-    <!-- ... (summary cards same as your version) -->
+    <div class="col-md-3">
+      <div class="card border-start border-success border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Revenue</h6>
+          <p class="fw-bold text-success">₹{{ "{:,.2f}".format(total_revenue) }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-start border-primary border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Products</h6>
+          <p class="fw-bold">{{ total_products }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-start border-warning border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Quantity Sold</h6>
+          <p class="fw-bold">{{ total_sold }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-start border-info border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Sellers</h6>
+          <p class="fw-bold">{{ total_sellers }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Extra Actions -->
-  <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
-    <!-- ... (admin action buttons same as your version) -->
+  <!-- More Stats -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card border-start border-primary border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Total Products Left</h6>
+          <p class="fw-bold text-primary">{{ total_unsold }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-start border-success border-4 shadow-sm">
+        <div class="card-body">
+          <h6>Admin Commission Earned</h6>
+          <p class="fw-bold text-success">₹{{ commission }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Chart + Product Description -->
+  <!-- Action Buttons -->
+  <div class="mb-4 d-flex flex-wrap gap-2">
+    <a href="/sales_history" class="btn btn-outline-info">🕒 View Sale History</a>
+    <a href="/admin_charts" class="btn btn-outline-primary">📊 Seller Comparison</a>
+    <a href="/manage_sellers" class="btn btn-outline-dark">👤 Manage Sellers</a>
+    <a href="/sell" class="btn btn-outline-success">➕ Add Product</a>
+    <a href="/promote_list" class="btn btn-outline-warning">🔁 Promote Buyer</a>
+    <a href="/admin/product_stats" class="btn btn-outline-secondary">📋 View Product Stats</a>
+    <a href="/admin/products_table" class="btn btn-outline-secondary">🖼️ View All Products</a>
+    <a href="/change_password" class="btn btn-outline-danger">🔐 Change Password</a>
+    <a href="/admin/change_name" class="btn btn-outline-secondary">✏️ Change Name</a>
+    <button class="btn btn-outline-primary" onclick="scrollToChart()">📊 View Chart</button>
+  </div>
+
+  <!-- Chart Section -->
   <div class="card mb-4" id="chart-section">
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
-        📊 Product Chart
+        📊 Product Distribution Chart
         <label for="chartTypeSelector" class="me-2">Chart Type:</label>
         <select id="chartTypeSelector" class="form-select w-auto">
-          <option value="">-- Select --</option>
+          <option value="">-- Choose Chart --</option>
           <option value="pie">Pie</option>
           <option value="bar">Bar</option>
           <option value="doughnut">Doughnut</option>
@@ -53,7 +113,7 @@
     </div>
   </div>
 
-  <!-- Seller Table -->
+  <!-- Seller Overview Table -->
   <div class="card">
     <div class="card-header">👤 Sellers Overview</div>
     <div class="card-body table-responsive">
@@ -67,7 +127,7 @@
         </thead>
         <tbody>
           {% for seller in seller_data %}
-          <tr onclick="openSellerDetail('{{ seller.id }}')" style="cursor: pointer;">
+          <tr onclick="openSellerDetail('{{ seller.id }}')" style="cursor:pointer;">
             <td>{{ seller.seller }}</td>
             <td>{{ seller.email }}</td>
             <td>{{ seller.product_count or 0 }}</td>
@@ -80,12 +140,12 @@
 </div>
 
 <!-- Seller Modal -->
-<div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
+<div class="modal fade" id="sellerModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="sellerModalLabel">Seller Details</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <h5 class="modal-title">Seller Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <p><strong>Name:</strong> <span id="modal-seller-name"></span></p>
@@ -145,11 +205,9 @@
   function toggleProductDescription() {
     const chartContainer = document.getElementById('chartContainer');
     const desc = document.getElementById('productDescription');
-
     if (desc.classList.contains('d-none')) {
       chartContainer.classList.add('d-none');
       desc.classList.remove('d-none');
-
       fetch('/admin/products_json')
         .then(res => res.json())
         .then(products => {
@@ -187,7 +245,7 @@
         document.getElementById('modal-seller-revenue').textContent = data.revenue;
         new bootstrap.Modal(document.getElementById('sellerModal')).show();
       })
-      .catch(err => alert("Error fetching seller details"));
+      .catch(() => alert("Error fetching seller details"));
   }
 </script>
-{% endblock %}  
+{% endblock %}

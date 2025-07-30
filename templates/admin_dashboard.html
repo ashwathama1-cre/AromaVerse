@@ -133,6 +133,7 @@
         <tbody>
           {% for seller in seller_data %}
           <tr onclick="openSellerDetail('{{ seller.id }}')" style="cursor:pointer;">
+
             <td>{{ seller.seller }}</td>
             <td>{{ seller.email }}</td>
             <td>{{ seller.product_count or 0 }}</td>
@@ -143,7 +144,6 @@
     </div>
   </div>
 </div>
-
 <!-- Seller Detail Modal -->
 <div class="modal fade" id="sellerModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -163,68 +163,83 @@
   </div>
 </div>
 
+
+
 <!-- Chart + Modal Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   let chart;
-  const ctx = document.getElementById('productChart').getContext('2d');
+
+  // Chart init
+  const ctx = document.getElementById('productChart')?.getContext('2d');
   const labels = {{ chart_labels | safe }};
   const data = {{ chart_data | safe }};
   const chartTypeSelector = document.getElementById('chartTypeSelector');
   const chartContainer = document.getElementById('chartContainer');
 
-  chartTypeSelector.addEventListener('change', function () {
-    if (chart) chart.destroy();
-    const selectedType = this.value;
-    if (!selectedType) {
-      chartContainer.classList.add("d-none");
-      return;
-    }
-    chartContainer.classList.remove("d-none");
-    chart = new Chart(ctx, {
-      type: selectedType,
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Product Count',
-          data: data,
-          backgroundColor: [
-            '#4CAF50', '#2196F3', '#FFC107', '#FF5722',
-            '#9C27B0', '#00BCD4', '#E91E63', '#3F51B5', '#795548'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: selectedType === 'bar' ? 'top' : 'right'
+  // Handle chart type change
+  if (chartTypeSelector) {
+    chartTypeSelector.addEventListener('change', function () {
+      if (chart) chart.destroy();
+      const selectedType = this.value;
+      if (!selectedType) {
+        chartContainer?.classList.add("d-none");
+        return;
+      }
+      chartContainer?.classList.remove("d-none");
+
+      chart = new Chart(ctx, {
+        type: selectedType,
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Product Count',
+            data: data,
+            backgroundColor: [
+              '#4CAF50', '#2196F3', '#FFC107', '#FF5722',
+              '#9C27B0', '#00BCD4', '#E91E63', '#3F51B5', '#795548'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: selectedType === 'bar' ? 'top' : 'right'
+            }
           }
         }
-      }
+      });
     });
-  });
-
-  function scrollToChart() {
-    document.getElementById('chart-section').scrollIntoView({ behavior: 'smooth' });
   }
 
+  // Scroll to chart section
+  function scrollToChart() {
+    document.getElementById('chart-section')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Toggle between chart and product description
   function toggleProductDescription() {
     const chartContainer = document.getElementById('chartContainer');
     const desc = document.getElementById('productDescription');
+    const tableBody = document.getElementById('product-desc-body');
+
+    if (!desc || !chartContainer || !tableBody) return;
+
     if (desc.classList.contains('d-none')) {
       chartContainer.classList.add('d-none');
       desc.classList.remove('d-none');
+
       fetch('/admin/products_json')
         .then(res => res.json())
         .then(products => {
-          const body = document.getElementById('product-desc-body');
-          body.innerHTML = '';
+          tableBody.innerHTML = '';
           let totalCommission = 0;
+
           products.forEach(p => {
             totalCommission += p.commission;
-            body.innerHTML += `
+            tableBody.innerHTML += `
               <tr>
                 <td><img src="${p.image || '/static/default.png'}" width="50"/></td>
                 <td>${p.name}</td>
@@ -239,26 +254,45 @@
               </tr>
             `;
           });
-          document.getElementById("total-commission").textContent = totalCommission.toFixed(2);
+
+          const totalCommissionEl = document.getElementById("total-commission");
+          if (totalCommissionEl) {
+            totalCommissionEl.textContent = totalCommission.toFixed(2);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to load product description data", err);
+          alert("Error loading product info.");
         });
+
     } else {
       desc.classList.add('d-none');
       chartContainer.classList.remove('d-none');
     }
   }
 
+  // Open seller modal on row click
   function openSellerDetail(sellerId) {
+    if (!sellerId) return;
     fetch(`/admin/seller_detail/${sellerId}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Seller fetch failed");
+        return res.json();
+      })
       .then(data => {
+        console.log("Seller Data:", data);
         document.getElementById('modal-seller-name').textContent = data.name;
         document.getElementById('modal-seller-email').textContent = data.email;
         document.getElementById('modal-seller-products').textContent = data.total_products;
         document.getElementById('modal-seller-sold').textContent = data.total_sold;
         document.getElementById('modal-seller-revenue').textContent = data.revenue;
-        new bootstrap.Modal(document.getElementById('sellerModal')).show();
+
+        const modal = new bootstrap.Modal(document.getElementById('sellerModal'));
+        modal.show();
       })
-      .catch(() => alert("Error fetching seller details"));
+      .catch(err => {
+        console.error("Error loading seller info:", err);
+        alert("Could not fetch seller details.");
+      });
   }
 </script>
-{% endblock %}

@@ -64,16 +64,17 @@ class User(db.Model):
 
 
 class Product(db.Model):
-    id = db.Column(db.String(36), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    type = db.Column(db.String(100))
-    price = db.Column(db.Float)
-    quantity = db.Column(db.Integer)
-    unit = db.Column(db.String(20))
-    image = db.Column(db.String(200))
+    type = db.Column(db.String(50))
     description = db.Column(db.Text)
-    sold = db.Column(db.Integer, default=0)
-    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    price = db.Column(db.Float)
+    image = db.Column(db.String(200))  # likely this is the correct field
+    quantity = db.Column(db.Integer)
+    sold = db.Column(db.Integer)
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    seller = db.relationship('User', backref='products')
+
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -583,27 +584,29 @@ def seller_dashboard():
 #>>>>>>>>>>selller data 
 
 @app.route('/admin/seller_detail/<int:seller_id>')
+@login_required
+@role_required('admin')
 def seller_detail(seller_id):
-    seller = User.query.get(seller_id)
-    if not seller:
-        return jsonify({"error": "Not found"}), 404
+    try:
+        seller = User.query.get(seller_id)
+        if not seller or seller.role != 'seller':
+            return jsonify({"error": "Seller not found"}), 404
 
-    total_products = Product.query.filter_by(seller_id=seller_id).count()
-    total_sold = db.session.query(func.sum(Product.sold)).filter_by(seller_id=seller_id).scalar() or 0
+        products = Product.query.filter_by(seller_id=seller_id).all()
+        total_products = len(products)
+        total_sold = sum(p.sold for p in products)
+        revenue = sum(p.sold * p.price for p in products)
 
-    # Correct revenue computation using expression
-    revenue = db.session.query(func.sum(Product.sold * Product.price)).filter_by(seller_id=seller_id).scalar()
-    if revenue is None:
-        revenue = 0
-
-    return jsonify({
-        "name": seller.username,
-        "email": seller.email,
-        "total_products": total_products,
-        "total_sold": total_sold,
-        "revenue": round(revenue, 2)
-    })
-
+        return jsonify({
+            "name": seller.username,
+            "email": seller.email,
+            "total_products": total_products,
+            "total_sold": total_sold,
+            "revenue": revenue
+        })
+    except Exception as e:
+        print("Error fetching seller:", e)
+        return jsonify({"error": "Internal Server Error"}), 500
 
 
 
@@ -848,10 +851,11 @@ def admin_dashboard():
         chart_data = [t[1] for t in type_counts]
 
         seller_data = db.session.query(
-            User.username.label("seller"),
-            User.email.label("email"),
+             User.id.label("id"),
+             User.username.label("seller"),
+             User.email.label("email"),
             func.count(Product.id).label("product_count")
-        ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
+                            ).join(Product, Product.seller_id == User.id).filter(User.role == 'seller').group_by(User.id).all()
 
         commission = 0
         purchases = Purchase.query.all()
@@ -932,22 +936,24 @@ def change_name():
 @login_required
 @role_required('admin')
 def admin_products_json():
-    products = Product.query.all()
-    product_list = []
-    for p in products:
-        product_list.append({
-            "image": p.image_url,
-            "name": p.name,
-            "type": p.type,
-            "description": p.description,  # <- include this
-            "seller": p.seller.username,
-            "left": p.quantity_left,
-            "sold": p.quantity_sold,
-            "price": p.price
-        })
-    return jsonify(product_list)
-
-
+    try:
+        products = Product.query.all()
+        product_list = []
+        for p in products:
+            product_list.append({
+                "image": p.image or "/static/default.png",  # fallback image
+                "name": p.name,
+                "type": p.type,
+                "description": p.description or "",
+                "seller": p.seller.username,
+                "left": p.quantity,
+                "sold": p.sold,
+                "price": p.price
+            })
+        return jsonify(product_list)
+    except Exception as e:
+        print("Error in /admin/products_json:", e)
+        return jsonify([]), 500
 
 
 # product chart 

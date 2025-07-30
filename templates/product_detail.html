@@ -9,7 +9,7 @@
   <!-- 🔍 Filters Section -->
   <form method="GET" class="row g-3 mb-4">
     <div class="col-md-4">
-      <input type="text" name="search" value="{{ request.args.get('search', '') | e }}" class="form-control" placeholder="🔍 Search by name or type..." />
+      <input type="text" name="search" value="{{ request.args.get('search', '') | e }}" class="form-control" placeholder="🔍 Search for Itra..." />
     </div>
     <div class="col-md-3">
       <select name="type" class="form-select">
@@ -39,14 +39,20 @@
       {% for p in products %}
       <div class="col-md-4 mb-4">
         <div class="card h-100 shadow-sm border-0">
-          <img src="{{ url_for('static', filename='images/' + p.image) }}" class="card-img-top" alt="{{ p.name }}" style="height: 250px; object-fit: cover;">
+          <a href="{{ url_for('product_detail', product_id=p.id) }}">
+            <img src="{{ url_for('static', filename='uploads/' ~ p.image) }}" class="card-img-top" alt="{{ p.name }}" style="height: 250px; object-fit: cover;" onerror="this.src='/static/default.png';">
+          </a>
           <div class="card-body d-flex flex-column">
-            <h5 class="card-title">{{ p.name }}</h5>
-            <p class="card-text mb-1">🌸 Type: <strong>{{ p.type }}</strong></p>
-            <p class="card-text mb-1">💰 Price: ₹{{ p.price }}</p>
-            <p class="card-text mb-2">📦 Unit: {{ p.unit }}</p>
+            <h5 class="card-title">
+              <a href="{{ url_for('product_detail', product_id=p.id) }}" class="text-decoration-none text-dark">
+                {{ p.name }}
+              </a>
+            </h5>
+            <p class="card-text mb-1">🌸 <strong>Type:</strong> {{ p.type }}</p>
+            <p class="card-text mb-1">💰 <strong>Price:</strong> ₹{{ p.price }}</p>
+            <p class="card-text mb-2">📦 <strong>Available:</strong> {{ p.quantity }} {{ p.unit }}</p>
             <a href="{{ url_for('buy', id=p.id) }}" class="btn btn-success mt-auto">
-              Buy Now 🛍️
+              🛍️ Buy Now
             </a>
           </div>
         </div>

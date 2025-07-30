@@ -6,56 +6,25 @@
 
   <!-- Summary Cards -->
   <div class="row mb-4">
-    <!-- Cards same as before -->
-    <!-- ... (no changes here) -->
+    <!-- ... (summary cards same as your version) -->
   </div>
 
-  <!-- Extra Stats & Actions -->
+  <!-- Extra Actions -->
   <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
-    <div class="col">
-      <div class="card border-start border-primary border-4 shadow-sm">
-        <div class="card-body">
-          <h6>Total Products Left</h6>
-          <p class="fw-bold text-primary">{{ total_unsold }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col">
-      <div class="card border-start border-success border-4 shadow-sm">
-        <div class="card-body">
-          <h6>Admin Commission Earned</h6>
-          <p class="fw-bold text-success">₹{{ commission }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col d-flex flex-column gap-2">
-      <a href="/sales_history" class="btn btn-outline-info">🕒 View Sale History</a>
-      <a href="/admin_charts" class="btn btn-outline-primary">📊 Seller Comparison</a>
-      <a href="/manage_sellers" class="btn btn-outline-dark">👤 Manage Sellers</a>
-      <a href="/sell" class="btn btn-outline-success">➕ Add Product</a>
-      <a href="/promote_list" class="btn btn-outline-warning">🔁 Promote Buyer</a>
-      <a href="/admin/product_stats" class="btn btn-outline-secondary">📋 View Product Stats</a>
-      <a href="/admin/products_table" class="btn btn-outline-secondary">🖼️ View All Products</a>
-      <a href="/change_password" class="btn btn-outline-danger">🔐 Change Password</a>
-      <a href="/admin/change_name" class="btn btn-outline-secondary">✏️ Change Name</a>
-      <!-- New Chart Button -->
-      <button class="btn btn-outline-primary" onclick="scrollToChart()">📊 View Product Chart</button>
-    </div>
+    <!-- ... (admin action buttons same as your version) -->
   </div>
 
-  <!-- Chart Section -->
+  <!-- Chart + Product Description -->
   <div class="card mb-4" id="chart-section">
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
-        📊 Product Distribution Chart
+        📊 Product Chart
         <label for="chartTypeSelector" class="me-2">Chart Type:</label>
         <select id="chartTypeSelector" class="form-select w-auto">
-          <option value="">-- Choose Chart --</option>
-          <option value="pie">Pie Chart</option>
-          <option value="bar">Bar Chart</option>
-          <option value="doughnut">Doughnut Chart</option>
+          <option value="">-- Select --</option>
+          <option value="pie">Pie</option>
+          <option value="bar">Bar</option>
+          <option value="doughnut">Doughnut</option>
         </select>
       </div>
       <button class="btn btn-outline-info btn-sm" onclick="toggleProductDescription()">📦 View Product Description</button>
@@ -71,6 +40,7 @@
               <th>Image</th>
               <th>Name</th>
               <th>Type</th>
+              <th>Description</th>
               <th>Seller</th>
               <th>Qty Left</th>
               <th>Qty Sold</th>
@@ -97,7 +67,7 @@
         </thead>
         <tbody>
           {% for seller in seller_data %}
-          <tr>
+          <tr onclick="openSellerDetail('{{ seller.id }}')" style="cursor: pointer;">
             <td>{{ seller.seller }}</td>
             <td>{{ seller.email }}</td>
             <td>{{ seller.product_count or 0 }}</td>
@@ -109,6 +79,25 @@
   </div>
 </div>
 
+<!-- Seller Modal -->
+<div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sellerModalLabel">Seller Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Name:</strong> <span id="modal-seller-name"></span></p>
+        <p><strong>Email:</strong> <span id="modal-seller-email"></span></p>
+        <p><strong>Total Products:</strong> <span id="modal-seller-products"></span></p>
+        <p><strong>Total Sold:</strong> <span id="modal-seller-sold"></span></p>
+        <p><strong>Revenue:</strong> ₹<span id="modal-seller-revenue"></span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -116,21 +105,17 @@
   const ctx = document.getElementById('productChart').getContext('2d');
   const labels = {{ chart_labels | safe }};
   const data = {{ chart_data | safe }};
-
   const chartTypeSelector = document.getElementById('chartTypeSelector');
   const chartContainer = document.getElementById('chartContainer');
 
   chartTypeSelector.addEventListener('change', function () {
     if (chart) chart.destroy();
-
     const selectedType = this.value;
     if (!selectedType) {
       chartContainer.classList.add("d-none");
       return;
     }
-
     chartContainer.classList.remove("d-none");
-
     chart = new Chart(ctx, {
       type: selectedType,
       data: {
@@ -138,10 +123,7 @@
         datasets: [{
           label: 'Product Count',
           data: data,
-          backgroundColor: [
-            '#4CAF50', '#2196F3', '#FFC107', '#FF5722',
-            '#9C27B0', '#00BCD4', '#E91E63', '#3F51B5', '#795548'
-          ],
+          backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0', '#00BCD4', '#E91E63'],
           borderWidth: 1
         }]
       },
@@ -157,10 +139,7 @@
   });
 
   function scrollToChart() {
-    const section = document.getElementById('chart-section');
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById('chart-section').scrollIntoView({ behavior: 'smooth' });
   }
 
   function toggleProductDescription() {
@@ -182,6 +161,7 @@
                 <td><img src="${p.image}" width="50"/></td>
                 <td>${p.name}</td>
                 <td>${p.type}</td>
+                <td>${p.description || 'No description'}</td>
                 <td>${p.seller}</td>
                 <td>${p.left}</td>
                 <td>${p.sold}</td>
@@ -195,5 +175,19 @@
       chartContainer.classList.remove('d-none');
     }
   }
+
+  function openSellerDetail(sellerId) {
+    fetch(`/admin/seller_detail/${sellerId}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('modal-seller-name').textContent = data.name;
+        document.getElementById('modal-seller-email').textContent = data.email;
+        document.getElementById('modal-seller-products').textContent = data.total_products;
+        document.getElementById('modal-seller-sold').textContent = data.total_sold;
+        document.getElementById('modal-seller-revenue').textContent = data.revenue;
+        new bootstrap.Modal(document.getElementById('sellerModal')).show();
+      })
+      .catch(err => alert("Error fetching seller details"));
+  }
 </script>
-{% endblock %}
+{% endblock %}  

@@ -678,6 +678,29 @@ def add_product():
     flash('✅ Product added successfully!', 'success')
     return redirect('/seller_dashboard')
 
+
+
+#---------------get selller detail----------------
+
+@app.route('/admin/seller/<int:seller_id>')
+@login_required
+@role_required('admin')
+def get_seller_detail(seller_id):
+    seller = Seller.query.get_or_404(seller_id)
+    product_count = Product.query.filter_by(seller_id=seller.id).count()
+    revenue = db.session.query(db.func.sum(Product.price * Product.sold_qty)).filter_by(seller_id=seller.id).scalar() or 0
+
+    return jsonify({
+        "username": seller.username,
+        "email": seller.email,
+        "aadhar": seller.aadhar,
+        "address": seller.address,
+        "photo": seller.photo,
+        "products": product_count,
+        "revenue": revenue
+    })
+
+
 # ------------------------- Delete Product -------------------------
 @app.route('/delete_product/<id>')
 @login_required

@@ -16,11 +16,63 @@
       {% for idx, (seller, count) in enumerate(seller_counts.items(), 1) %}
       <tr>
         <td>{{ idx }}</td>
-        <td>{{ seller }}</td>
+        <td>
+          <a href="#" class="text-decoration-none" onclick="viewSeller('{{ seller_ids[seller] }}')">
+            {{ seller }}
+          </a>
+        </td>
         <td>{{ count }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
+<!-- Seller Detail Modal -->
+<div class="modal fade" id="sellerModal" tabindex="-1" aria-labelledby="sellerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">👤 Seller Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-4">
+          <div class="col-md-4 text-center">
+            <img id="sellerPhoto" src="" class="img-fluid rounded shadow-sm" width="150">
+          </div>
+          <div class="col-md-8">
+            <p><strong>Name:</strong> <span id="sellerName"></span></p>
+            <p><strong>Email:</strong> <span id="sellerEmail"></span></p>
+            <p><strong>Address:</strong> <span id="sellerAddress"></span></p>
+            <p><strong>Aadhar No:</strong> <span id="sellerAadhar"></span></p>
+            <p><strong>Total Products:</strong> <span id="sellerProducts"></span></p>
+            <p><strong>Total Sales:</strong> <span id="sellerSales"></span></p>
+            <p><strong>Date Joined:</strong> <span id="sellerJoined"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function viewSeller(sellerId) {
+    fetch(`/admin/seller_detail/${sellerId}`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('sellerPhoto').src = data.photo;
+        document.getElementById('sellerName').textContent = data.name;
+        document.getElementById('sellerEmail').textContent = data.email;
+        document.getElementById('sellerAddress').textContent = data.address;
+        document.getElementById('sellerAadhar').textContent = `XXXX-XXXX-${data.aadhar.slice(-4)}`;
+        document.getElementById('sellerProducts').textContent = data.product_count;
+        document.getElementById('sellerSales').textContent = data.total_sales;
+        document.getElementById('sellerJoined').textContent = data.joined;
+
+        const modal = new bootstrap.Modal(document.getElementById('sellerModal'));
+        modal.show();
+      });
+  }
+</script>
 {% endblock %}

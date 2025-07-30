@@ -67,16 +67,13 @@ class Product(db.Model):
     id = db.Column(db.String, primary_key=True)
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
-    description = db.Column(db.Text)
-    image = db.Column(db.String)
+    price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
     sold = db.Column(db.Integer, default=0)
-    price = db.Column(db.Float)
+    unit = db.Column(db.String(10))         # ✅ NEW FIELD
+    image = db.Column(db.String(100))       # ✅ NEW FIELD
+    description = db.Column(db.Text)        # ✅ NEW FIELD
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    # ✅ ADD THIS:
-    unit = db.Column(db.String(10))
-
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)

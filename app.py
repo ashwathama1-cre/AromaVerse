@@ -603,6 +603,17 @@ def seller_detail(seller_id):
 
 
 
+#####>>>>>>>>>>>>>>>>>>>manage seller
+@app.route("/manage_sellers")
+def manage_sellers():
+    sellers = Seller.query.all()
+    seller_counts = {}
+    seller_ids = {}
+    for s in sellers:
+        count = Product.query.filter_by(seller_id=s.id).count()
+        seller_counts[s.username] = count
+        seller_ids[s.username] = s.id
+    return render_template("manage_sellers.html", seller_counts=seller_counts, seller_ids=seller_ids)
 
 
 

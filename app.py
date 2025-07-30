@@ -580,6 +580,31 @@ def seller_dashboard():
             notifications.append(f'Your product "{p.name}" was sold ({p.sold} units).')
 
     return render_template("seller_dashboard.html", products=products, notifications=notifications)
+#>>>>>>>>>>selller data 
+
+
+@app.route("/admin/seller_detail/<int:seller_id>")
+def seller_detail(seller_id):
+    seller = Seller.query.get_or_404(seller_id)
+    products = Product.query.filter_by(seller_id=seller.id).all()
+    total_sales = sum(p.quantity_sold for p in products)
+
+    return jsonify({
+        "name": seller.name,
+        "email": seller.email,
+        "address": seller.address,
+        "aadhar": seller.aadhar,
+        "photo": url_for('static', filename=f'uploads/{seller.photo}'),
+        "product_count": len(products),
+        "total_sales": total_sales,
+        "joined": seller.created_at.strftime("%Y-%m-%d")
+    })
+
+
+
+
+
+
 
 
 #>>>>>>>>>>>>>>promote buyer 
@@ -861,6 +886,20 @@ def change_name():
 
     return render_template('change_name.html', current_username=user.username)
 
+#>>>>>>>>>>>>>>>>>>>>>>>>adminn product j
+@app.route("/admin/products_json")
+def admin_products_json():
+    products = Product.query.all()
+    data = [{
+        "image": url_for('static', filename=f'uploads/{p.image}'),
+        "name": p.name,
+        "type": p.type,
+        "seller": p.seller_name,
+        "left": p.quantity_left,
+        "sold": p.quantity_sold,
+        "price": p.price
+    } for p in products]
+    return jsonify(data)
 
 
 

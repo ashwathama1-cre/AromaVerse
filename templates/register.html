@@ -59,13 +59,16 @@
       </div>
 
       <div class="mb-3 d-grid">
-        <button type="submit" name="send_otp" value="1" class="btn btn-warning">📩 Send OTP</button>
+        <button type="submit" name="send_otp" value="1" class="btn btn-warning" id="sendOtpBtn">📩 Send OTP</button>
       </div>
 
       {% if show_otp %}
       <div class="mb-3">
         <label class="form-label">🧾 Enter OTP</label>
         <input type="text" name="otp" class="form-control" placeholder="Enter the OTP sent" required>
+        <div class="text-muted mt-1">
+          ⏳ Time remaining: <span id="otpTimer">02:00</span>
+        </div>
       </div>
       {% endif %}
 
@@ -81,11 +84,27 @@
 <script>
 function togglePassword() {
   const passField = document.getElementById("passwordField");
-  if (passField.type === "password") {
-    passField.type = "text";
-  } else {
-    passField.type = "password";
-  }
+  passField.type = (passField.type === "password") ? "text" : "password";
 }
+
+{% if show_otp %}
+let totalSeconds = 120;
+const timerElement = document.getElementById("otpTimer");
+const sendBtn = document.getElementById("sendOtpBtn");
+sendBtn.disabled = true;
+
+const timer = setInterval(() => {
+  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  timerElement.textContent = `${minutes}:${seconds}`;
+  totalSeconds--;
+
+  if (totalSeconds < 0) {
+    clearInterval(timer);
+    timerElement.textContent = "Expired ⛔";
+    sendBtn.disabled = false;
+  }
+}, 1000);
+{% endif %}
 </script>
 {% endblock %}

@@ -416,33 +416,29 @@ def register():
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
-    if 'otp' not in session:
-        flash("Session expired. Please register again.", "warning")
-        return redirect('/register')
+    email = session.get('otp_email')
+    otp_data = otp_storage.get(email)
+
+    if not otp_data:
+        flash("OTP session expired. Please request again.", "danger")
+        return redirect('/')
+
+    time_left = (otp_data['expires'] - datetime.now()).total_seconds()
 
     if request.method == 'POST':
         entered_otp = request.form.get('otp')
-        real_otp = session.get('otp')
-        otp_time = session.get('otp_time')
-
-        # Check if OTP expired (after 2 minutes)
-        if datetime.now() - otp_time > timedelta(minutes=2):
-            flash("OTP expired. Please register again.", "danger")
-            session.pop('otp', None)
-            return redirect('/register')
-
-        if entered_otp == real_otp:
-            email = session.get('email')
-            users[email] = {'email': email, 'verified': True}
-            session.pop('otp', None)
-            flash("✅ OTP verified. Registration complete!", "success")
+        if datetime.now() > otp_data['expires']:
+            flash("⏰ OTP expired! Please request again.", "danger")
+            return redirect('/')
+        if entered_otp == otp_data['otp']:
+            flash("✅ OTP Verified!", "success")
+            del otp_storage[email]
             return redirect('/dashboard')
         else:
-            flash("❌ Incorrect OTP. Please try again.", "danger")
+            flash("❌ Incorrect OTP!", "danger")
+            return redirect(url_for('verify_otp'))
 
-    return render_template('verify_otp.html')
-
-
+    return render_template("verify_otp.html", time_left=int(time_left))
 @app.route('/dashboard')
 def dashboard():
     email = session.get('email')
@@ -458,23 +454,20 @@ def dashboard():
 def generate_otp():
     return str(random.randint(100000, 999999))
 
-@app.route('/send_otp', methods=['POST'])
-def send_otp():
-    method = request.form['method']  # 'email' or 'phone'
-    recipient = request.form['recipient']
+otp_storage = {}
 
-    otp = generate_otp()
-    session['otp'] = otp
-    session['otp_expires'] = (datetime.utcnow() + timedelta(minutes=2)).isoformat()
+@app.route('/send_otp/<email>')
+def send_otp(email):
+    otp = str(random.randint(100000, 999999))
+    expiry_time = datetime.now() + timedelta(minutes=2)
 
-    # Send OTP (you should replace with actual email/SMS logic)
-    if method == 'email':
-        send_email(recipient, f"Your OTP is: {otp}")
-    else:
-        send_sms(recipient, f"Your OTP is: {otp}")
+    # Store OTP and expiry in session or dict
+    otp_storage[email] = {'otp': otp, 'expires': expiry_time}
 
-    return jsonify({'message': 'OTP sent successfully!'})
+    print(f"OTP for {email}: {otp} (valid until {expiry_time.strftime('%H:%M:%S')})")  # Replace with email sending logic
 
+    session['otp_email'] = email
+    return redirect(url_for('verify_otp'))
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():

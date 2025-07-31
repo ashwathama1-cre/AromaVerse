@@ -34,13 +34,36 @@
       </div>
 
       <div class="mb-3">
+        <label class="form-label">📱 Phone Number</label>
+        <input type="tel" name="phone" class="form-control" placeholder="Enter your phone number" required>
+      </div>
+
+      <div class="mb-3">
         <label class="form-label">🔑 Password</label>
-        <input type="password" name="password" class="form-control" placeholder="Create a password" required>
+        <div class="input-group">
+          <input type="password" name="password" id="password" class="form-control" placeholder="Create a password" required>
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('password')">👁️</button>
+        </div>
       </div>
 
       <div class="mb-3">
         <label class="form-label">🔁 Confirm Password</label>
-        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+        <div class="input-group">
+          <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm password" required>
+          <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirm_password')">👁️</button>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">🔔 Verify via</label><br>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="verify_method" id="verify_email" value="email" checked>
+          <label class="form-check-label" for="verify_email">Email</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="verify_method" id="verify_phone" value="phone">
+          <label class="form-check-label" for="verify_phone">Phone</label>
+        </div>
       </div>
 
       <button type="submit" class="btn btn-success w-100">✅ Register</button>
@@ -51,4 +74,11 @@
     </div>
   </div>
 </div>
+
+<script>
+  function togglePassword(fieldId) {
+    const input = document.getElementById(fieldId);
+    input.type = input.type === "password" ? "text" : "password";
+  }
+</script>
 {% endblock %}

@@ -67,15 +67,18 @@ class User(db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    type = db.Column(db.String(50))
-    description = db.Column(db.Text)
-    seller = db.Column(db.String(100))
-    quantity = db.Column(db.Integer)
-    sold = db.Column(db.Integer, default=0)
-    price = db.Column(db.Float)
-    unit = db.Column(db.String(20))  # ✅ Add this
-    image = db.Column(db.String(200))
+    name = db.Column(db.String(150), nullable=False)
+    type = db.Column(db.String(100), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(20), nullable=False)  # e.g., ml, gm, bottle
+    quantity = db.Column(db.Integer, nullable=False)
+    sold = db.Column(db.Integer, default=0)  # Number of units sold
+    image = db.Column(db.String(200))  # image filename or path
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # foreign key to seller
+
+    # Optional: Define relationship back to User (seller)
+    seller = db.relationship('User', backref='products')
+
 
 
 

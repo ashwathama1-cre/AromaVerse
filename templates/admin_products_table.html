@@ -19,8 +19,12 @@
       {% for product in products %}
       <tr>
         <td>
-          <a href="{{ url_for('static', filename='uploads/' ~ product.image) }}" target="_blank">
-            <img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" alt="{{ product.name }}" width="60">
+          <td>
+                <a href="{{ url_for('static', filename='uploads/' ~ product.image) }}" target="_blank">
+              <img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" alt="{{ product.name }}" width="60">
+            </a>
+         </td>
+
           </a>
         </td>
         <td>{{ product.name }}</td>

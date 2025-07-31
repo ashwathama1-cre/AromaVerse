@@ -65,17 +65,17 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(120), unique=True)  # ✅ Add this line
 
-
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
-    price = db.Column(db.Float)
-    quantity = db.Column(db.Integer)
-    unit = db.Column(db.String(10))
-    image = db.Column(db.String(255))  # stores filename like 'rose.jpg'
     description = db.Column(db.Text)
-    seller_id = db.Column(db.Integer)
+    seller = db.Column(db.String(100))
+    quantity = db.Column(db.Integer)
+    sold = db.Column(db.Integer)   # ✅ You must have this line!
+    price = db.Column(db.Float)
+    image = db.Column(db.String(200))
+
 
 
 class CartItem(db.Model):

@@ -9,7 +9,6 @@
       <h3>Create Your Account</h3>
     </div>
 
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -25,51 +24,50 @@
 
       <div class="mb-3">
         <label class="form-label">👤 Username</label>
-        <input type="text" name="username" class="form-control" required>
+        <input type="text" name="username" class="form-control" placeholder="Choose a username" required>
       </div>
 
       <div class="mb-3">
         <label class="form-label">📧 Email</label>
-        <input type="email" name="email" class="form-control" required>
+        <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">📞 Phone Number</label>
-        <input type="tel" name="phone" class="form-control" required>
+        <label class="form-label">📱 Phone Number</label>
+        <input type="tel" name="phone" class="form-control" placeholder="Enter your phone number" required>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">🔐 Password</label>
+        <label class="form-label">🔑 Password</label>
         <div class="input-group">
-          <input type="password" name="password" id="password" class="form-control" required>
-          <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password')">👁️</button>
+          <input type="password" name="password" class="form-control" placeholder="Create a password" id="passwordField" required>
+          <button type="button" class="btn btn-outline-secondary" onclick="togglePassword()">👁️</button>
         </div>
       </div>
 
       <div class="mb-3">
         <label class="form-label">🔁 Confirm Password</label>
-        <div class="input-group">
-          <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
-          <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('confirm_password')">👁️</button>
-        </div>
+        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">📬 Choose Verification Method</label><br>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="verify_method" id="viaEmail" value="email" checked>
-          <label class="form-check-label" for="viaEmail">Email</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="verify_method" id="viaPhone" value="phone">
-          <label class="form-check-label" for="viaPhone">Phone</label>
-        </div>
+        <label class="form-label">🔍 Verify using</label>
+        <select class="form-select" name="otp_method" required>
+          <option value="email">Email</option>
+          <option value="phone">Phone</option>
+        </select>
       </div>
 
-      <div class="mb-3 d-flex justify-content-between align-items-center">
-        <button type="button" class="btn btn-info" onclick="sendOTP()">📨 Send OTP</button>
-        <input type="text" name="otp" placeholder="Enter OTP" class="form-control ms-2" required>
+      <div class="mb-3 d-grid">
+        <button type="submit" name="send_otp" value="1" class="btn btn-warning">📩 Send OTP</button>
       </div>
+
+      {% if show_otp %}
+      <div class="mb-3">
+        <label class="form-label">🧾 Enter OTP</label>
+        <input type="text" name="otp" class="form-control" placeholder="Enter the OTP sent" required>
+      </div>
+      {% endif %}
 
       <button type="submit" class="btn btn-success w-100">✅ Register</button>
     </form>
@@ -81,15 +79,13 @@
 </div>
 
 <script>
-function togglePassword(id) {
-  const field = document.getElementById(id);
-  field.type = field.type === "password" ? "text" : "password";
-}
-
-function sendOTP() {
-  const method = document.querySelector('input[name="verify_method"]:checked').value;
-  alert("OTP will be sent to your " + method.toUpperCase());
-  // Optional: Call backend API to send OTP here
+function togglePassword() {
+  const passField = document.getElementById("passwordField");
+  if (passField.type === "password") {
+    passField.type = "text";
+  } else {
+    passField.type = "password";
+  }
 }
 </script>
 {% endblock %}

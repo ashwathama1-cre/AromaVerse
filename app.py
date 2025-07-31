@@ -14,6 +14,8 @@ from datetime import timedelta, datetime
 from dotenv import load_dotenv
 import os
 import uuid
+import random
+
 import logging
 logging.basicConfig(level=logging.DEBUG)
 

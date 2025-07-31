@@ -9,7 +9,7 @@
     {% for product in products %}
       <div class="col">
         <div class="card h-100 shadow-sm">
-          <img src="{{ product.image }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+          <img src="{{ url_for('static', filename='uploads/' ~ product.image) }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
           <div class="card-body">
             <h5 class="card-title">{{ product.name }}</h5>
             <p class="card-text">
@@ -23,4 +23,7 @@
       </div>
     {% endfor %}
   {% else %}
-    <p class="text-center">No products
+    <p class="text-center">No products available.</p>
+  {% endif %}
+</div>
+{% endblock %}

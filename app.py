@@ -72,8 +72,9 @@ class Product(db.Model):
     description = db.Column(db.Text)
     seller = db.Column(db.String(100))
     quantity = db.Column(db.Integer)
-    sold = db.Column(db.Integer)   # ✅ You must have this line!
+    sold = db.Column(db.Integer, default=0)
     price = db.Column(db.Float)
+    unit = db.Column(db.String(20))  # ✅ Add this
     image = db.Column(db.String(200))
 
 

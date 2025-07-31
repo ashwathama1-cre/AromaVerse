@@ -465,20 +465,7 @@ def dashboard():
 def generate_otp():
     return str(random.randint(100000, 999999))
 
-otp_storage = {}
 
-@app.route('/send_otp/<email>')
-def send_otp(email):
-    otp = str(random.randint(100000, 999999))
-    expiry_time = datetime.now() + timedelta(minutes=2)
-
-    # Store OTP and expiry in session or dict
-    otp_storage[email] = {'otp': otp, 'expires': expiry_time}
-
-    print(f"OTP for {email}: {otp} (valid until {expiry_time.strftime('%H:%M:%S')})")  # Replace with email sending logic
-
-    session['otp_email'] = email
-    return redirect(url_for('verify_otp'))
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -501,15 +488,17 @@ def forgot_password():
 
 
 #>>>>>>>>>send otp
-@app.route("/send_otp", methods=["POST"])
-def send_otp():
+@app.route('/send_otp_phone', methods=['POST'])
+def send_otp_phone():
     data = request.get_json()
     method = data.get("method")
     contact = data.get("contact")
     country_code = data.get("country_code", "")
 
     otp = str(random.randint(100000, 999999))
+    expiry_time = datetime.now() + timedelta(minutes=2)
 
+    # Handle email or phone
     if method == "email":
         send_email(contact, "Your OTP", f"Your OTP is: {otp}")
     elif method == "phone":
@@ -518,9 +507,12 @@ def send_otp():
     else:
         return jsonify({"message": "Invalid method"}), 400
 
+    # Store OTP session
     session["otp"] = otp
     session["otp_contact"] = contact
-    return jsonify({"message": "OTP sent successfully"})
+    session["otp_expires"] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    return jsonify({"message": f"OTP sent to {method}"}), 200
 
 
 @app.route('/change_password', methods=['GET', 'POST'])

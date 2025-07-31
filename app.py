@@ -853,9 +853,9 @@ def promote_user(user_id):
     return redirect(url_for('manage_users'))
 
 
-@app.route('/add_product', methods=['POST'])
+@app.route('/add_product_alt', methods=['POST'])
 @role_required('seller')
-def add_product():
+def add_product_alt():
     try:
         name = request.form['name']
         type = request.form['type']

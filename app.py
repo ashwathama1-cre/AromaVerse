@@ -394,80 +394,63 @@ def logout():
 from random import randint
 otp_storage = {}
 
+# Dummy in-memory database (replace with SQLAlchemy for production)
+users = {}
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        phone = request.form['phone']
-        password = generate_password_hash(request.form['password'])
-        otp_channel = request.form['otp_channel']
+        email = request.form.get('email')
+        session['email'] = email
 
-        otp = str(randint(100000, 999999))
-        otp_storage[email] = otp  # Store in-memory (or session/DB)
+        # Generate 6-digit OTP
+        otp = str(random.randint(100000, 999999))
+        session['otp'] = otp
+        session['otp_time'] = datetime.now()
 
-        # Simulate sending OTP
-        if otp_channel == "email":
-            print(f"Sending OTP to email {email}: {otp}")
-        else:
-            print(f"Sending OTP to phone {phone}: {otp}")
-
-        session['temp_user'] = {'name': name, 'email': email, 'phone': phone, 'password': password}
-        flash(f"OTP sent to your {otp_channel}.", "info")
+        flash(f"OTP sent to your email! (Simulated OTP: {otp})", "info")  # In production, send via email/SMS
         return redirect('/verify_otp')
 
     return render_template('register.html')
 
 
-#>>>>>>>>>>>>>>verify otp>>>>>>>>>>
-
-
-
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
+    if 'otp' not in session:
+        flash("Session expired. Please register again.", "warning")
+        return redirect('/register')
+
     if request.method == 'POST':
-        otp_input = request.form['otp']
-        temp_user = session.get('temp_user')
-        otp_timestamp = session.get('otp_timestamp')
+        entered_otp = request.form.get('otp')
+        real_otp = session.get('otp')
+        otp_time = session.get('otp_time')
 
-        if not temp_user or not otp_timestamp:
-            flash("Session expired. Please register again.", "danger")
-            return redirect('/register')
-
-        # Check OTP expiry (2 mins)
-        otp_time = datetime.strptime(otp_timestamp, "%Y-%m-%d %H:%M:%S")
-        if datetime.utcnow() - otp_time > timedelta(minutes=2):
-            session.pop('temp_user', None)
-            session.pop('otp_timestamp', None)
-            otp_storage.pop(temp_user['email'], None)
+        # Check if OTP expired (after 2 minutes)
+        if datetime.now() - otp_time > timedelta(minutes=2):
             flash("OTP expired. Please register again.", "danger")
+            session.pop('otp', None)
             return redirect('/register')
 
-        correct_otp = otp_storage.get(temp_user['email']) or otp_storage.get(temp_user['phone'])
-
-        if otp_input == correct_otp:
-            # Save to DB
-            new_user = User(
-                name=temp_user['name'],
-                email=temp_user['email'],
-                phone=temp_user['phone'],
-                password=temp_user['password']
-            )
-            db.session.add(new_user)
-            db.session.commit()
-
-            # Clean session & OTP
-            session.pop('temp_user', None)
-            session.pop('otp_timestamp', None)
-            otp_storage.pop(temp_user['email'], None)
-            otp_storage.pop(temp_user['phone'], None)
-
-            flash("Registration complete! You can now log in.", "success")
-            return redirect('/login')
+        if entered_otp == real_otp:
+            email = session.get('email')
+            users[email] = {'email': email, 'verified': True}
+            session.pop('otp', None)
+            flash("✅ OTP verified. Registration complete!", "success")
+            return redirect('/dashboard')
         else:
-            flash("Invalid OTP. Please try again.", "danger")
+            flash("❌ Incorrect OTP. Please try again.", "danger")
 
     return render_template('verify_otp.html')
+
+
+@app.route('/dashboard')
+def dashboard():
+    email = session.get('email')
+    if not email or email not in users:
+        flash("Please register first.", "warning")
+        return redirect('/register')
+
+    return render_template('dashboard.html', email=email)
 
 #>>>>>>>>>>send otp 
 

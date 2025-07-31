@@ -414,11 +414,22 @@ def register():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form['email']
-        # Add logic to verify email and send reset link or OTP
-        flash('Password reset link sent to your email (mocked).', 'info')
+        method = request.form['method']  # 'email' or 'phone'
+        contact = request.form['contact']
+        otp = request.form['otp']
+        new_password = request.form['new_password']
+
+        # Simulate checking OTP (in real case, use session + email gateway or SMS API)
+        if otp != "123456":
+            flash("Invalid OTP. Try again.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        # TODO: Lookup user and update password in database
+        flash(f"Password updated successfully for {method}: {contact}", "success")
         return redirect(url_for('login'))
+
     return render_template('forgot_password.html')
+
 
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+  <div class="col-md-6 mx-auto bg-light p-4 rounded shadow">
+    <h4>🔒 Enter the OTP</h4>
+    <form method="POST">
+      <div class="mb-3">
+        <label>OTP</label>
+        <input type="text" name="otp" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Verify & Complete Registration</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

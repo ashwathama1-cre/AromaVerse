@@ -17,21 +17,29 @@
       </tr>
     </thead>
     <tbody>
-      {% if product_overview %}
-        {% for item in product_overview %}
+      {% if products %}
+        {% for item in products %}
         <tr class="text-center">
           <td>
-            <img src="{{ url_for('static', filename='uploads/' ~ item.image) }}" 
+            {% set image_map = {
+              'Musk': 'musk_itra.jpg',
+              'Oud': 'oud_itra.jpg',
+              'Oudh': 'oudh_itra.jpeg',
+              'Rose': 'rose_itra.jpg',
+              'Sandalwood': 'sandalwood_itra.jpg'
+            } %}
+            {% set image_file = image_map.get(item.type, 'default.jpg') %}
+            <img src="{{ url_for('static', filename='images/' ~ image_file) }}" 
                  alt="{{ item.name }}" width="60" height="60" 
                  style="object-fit: cover; border-radius: 8px;">
           </td>
           <td>{{ item.name }}</td>
           <td>{{ item.type }}</td>
-          <td>{{ item.total_quantity }}</td>
-          <td>{{ item.sold_quantity }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.sold }}</td>
           <td>
-            <span class="{% if item.remaining_quantity == 0 %}text-danger{% elif item.remaining_quantity < 10 %}text-warning{% else %}text-success{% endif %}">
-              {{ item.remaining_quantity }}
+            <span class="{% if item.quantity - item.sold == 0 %}text-danger{% elif item.quantity - item.sold < 10 %}text-warning{% else %}text-success{% endif %}">
+              {{ item.quantity - item.sold }}
             </span>
           </td>
         </tr>

@@ -809,33 +809,57 @@ def promote_user(user_id):
 @app.route('/add_product', methods=['POST'])
 @role_required('seller')
 def add_product():
-    name = request.form['name']
-    type = request.form['type']
-    price = float(request.form['price'])
-    quantity = int(request.form['quantity'])
-    unit = request.form['unit']
-    image = request.files['image']
-    filename = secure_filename(image.filename)
-    image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    description = request.form.get('description')
-    seller_id = get_current_user().id  # Assuming you're fetching logged-in seller
+    try:
+        name = request.form['name']
+        type = request.form['type']
+        price = float(request.form['price'])
+        quantity = int(request.form['quantity'])
+        unit = request.form['unit']
+        image = request.files['image']
+        description = request.form.get('description', "")
 
-    # ✅ Automatically assign ID
-    new_product = Product(
-        name=name,
-        type=type,
-        price=price,
-        quantity=quantity,
-        unit=unit,
-        image=filename,
-        description=description,
-        seller_id=seller_id
-    )
-    db.session.add(new_product)
-    db.session.commit()
+        # Save image securely
+        if image and allowed_file(image.filename):
+            filename = secure_filename(str(uuid.uuid4()) + "_" + image.filename)
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image.save(image_path)
+        else:
+            flash("Invalid or missing image file", "danger")
+            return redirect('/seller_dashboard')
 
-    flash("✅ Product added successfully", "success")
-    return redirect('/seller_dashboard')
+        seller = get_current_user()
+        if not seller:
+            flash("Seller not found in session", "danger")
+            return redirect('/login')
+
+        new_product = Product(
+            name=name,
+            type=type,
+            price=price,
+            quantity=quantity,
+            unit=unit,
+            image=filename,
+            description=description,
+            seller_id=seller.id
+        )
+        db.session.add(new_product)
+        db.session.commit()
+
+        flash("✅ Product added successfully", "success")
+        return redirect('/seller_dashboard')
+
+    except Exception as e:
+        print("Error in add_product:", e)
+        flash("❌ Something went wrong while adding the product.", "danger")
+        return redirect('/seller_dashboard')
+
+#>>>>>>>>>>>>>>>>>>>>>>>
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 
 #---------------get selller detail----------------

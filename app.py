@@ -1291,7 +1291,8 @@ def product_type_overview():
     counts = {}
     for p in all_products:
         counts[p.type] = counts.get(p.type, 0) + 1
-    return render_template('product_type_overview.html', counts=counts)
+    return render_template('product_type_overview.html', counts=counts, products=all_products)
+
 
 
 @app.route('/product_sales_summary')

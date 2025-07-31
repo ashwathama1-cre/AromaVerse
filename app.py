@@ -67,16 +67,16 @@ class User(db.Model):
 
 
 class Product(db.Model):
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # ✅ Use Integer auto ID
+    id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     type = db.Column(db.String(50))
     price = db.Column(db.Float)
     quantity = db.Column(db.Integer)
-    sold = db.Column(db.Integer, default=0)
     unit = db.Column(db.String(10))
-    image = db.Column(db.String(100))
+    image = db.Column(db.String(255))  # stores filename like 'rose.jpg'
     description = db.Column(db.Text)
-    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    seller_id = db.Column(db.Integer)
+
 
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -126,6 +126,12 @@ def role_required(role):
         return decorated
     return decorator
 
+def get_current_user():
+    # Dummy for demo – replace with actual session logic
+    class DummyUser:
+        id = 1
+    return DummyUser()
+
 def send_email(to, message):
     print(f"[EMAIL TO: {to}] {message}")
 
@@ -168,6 +174,47 @@ def insert_fake_data():
 # ------------------ Routes ------------------
 
 # (your route code goes here...)
+
+
+
+@app.route('/add_product', methods=['GET', 'POST'])
+@role_required('seller')
+def add_product():
+    if request.method == 'POST':
+        name = request.form['name']
+        type = request.form['type']
+        price = float(request.form['price'])
+        quantity = int(request.form['quantity'])
+        unit = request.form['unit']
+        description = request.form.get('description')
+        image = request.files['image']
+
+        if image and image.filename != '':
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        else:
+            filename = 'default.jpg'  # fallback image
+
+        seller_id = get_current_user().id
+
+        new_product = Product(
+            name=name,
+            type=type,
+            price=price,
+            quantity=quantity,
+            unit=unit,
+            image=filename,
+            description=description,
+            seller_id=seller_id
+        )
+        db.session.add(new_product)
+        db.session.commit()
+        flash("✅ Product added successfully!", "success")
+        return redirect('/seller_dashboard')
+
+    return render_template('add_product.html')
+
+
 
 @app.route('/reset_db')
 def reset_db():

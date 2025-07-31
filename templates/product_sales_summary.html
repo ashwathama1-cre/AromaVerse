@@ -4,9 +4,10 @@
 {% block content %}
 <h2 class="mb-4 text-center">🧾 Product Sales Summary</h2>
 
-<table class="table table-bordered table-striped">
-  <thead class="table-dark">
+<table class="table table-bordered table-striped align-middle">
+  <thead class="table-dark text-center">
     <tr>
+      <th>Image</th>
       <th>Product Name</th>
       <th>Type</th>
       <th>Quantity Sold</th>
@@ -16,7 +17,10 @@
   <tbody>
     {% if sales_data %}
       {% for item in sales_data %}
-      <tr>
+      <tr class="text-center">
+        <td>
+          <img src="{{ url_for('static', filename='uploads/' ~ item.image) }}" alt="{{ item.name }}" width="60" height="60" style="object-fit: cover; border-radius: 8px;">
+        </td>
         <td>{{ item.name }}</td>
         <td>{{ item.type }}</td>
         <td>{{ item.sold_quantity }}</td>
@@ -24,7 +28,7 @@
       </tr>
       {% endfor %}
     {% else %}
-      <tr><td colspan="4" class="text-center">No sales data available.</td></tr>
+      <tr><td colspan="5" class="text-center">No sales data available.</td></tr>
     {% endif %}
   </tbody>
 </table>

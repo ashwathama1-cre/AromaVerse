@@ -402,14 +402,18 @@ users = {}
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email')
-        session['email'] = email
-
-        # Generate 6-digit OTP
-        otp = str(random.randint(100000, 999999))
-        session['otp'] = otp
-        session['otp_time'] = datetime.now()
-
+         # Extract form data
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        
+        # 👇 Here’s where you handle the phone input with country code
+        country_code = request.form.get("country_code")  # e.g. +91
+        phone = request.form.get("phone")                # e.g. 9876543210
+        full_phone = f"{country_code}{phone}"            # → +919876543210
+        
+        # Now use `full_phone` for saving to DB or sending OTP
+        print("Full Phone:", full_phone)
         flash(f"OTP sent to your email! (Simulated OTP: {otp})", "info")  # In production, send via email/SMS
         return redirect('/verify_otp')
 

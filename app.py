@@ -391,25 +391,70 @@ def logout():
     flash("Logged out successfully!", "info")
     return redirect('/login')
 
+from random import randint
+otp_storage = {}
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        confirm = request.form['confirm_password']
+        name = request.form['name']
+        email = request.form['email']
+        phone = request.form['phone']
+        password = generate_password_hash(request.form['password'])
+        otp_channel = request.form['otp_channel']
 
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists!', 'danger')
-        elif password != confirm:
-            flash('Passwords do not match!', 'warning')
+        otp = str(randint(100000, 999999))
+        otp_storage[email] = otp  # Store in-memory (or session/DB)
+
+        # Simulate sending OTP
+        if otp_channel == "email":
+            print(f"Sending OTP to email {email}: {otp}")
         else:
-            new_user = User(username=username, password=generate_password_hash(password), role='buyer')
-            db.session.add(new_user)
-            db.session.commit()
-            flash('Account created! Please login.', 'success')
-            return redirect('/login')
+            print(f"Sending OTP to phone {phone}: {otp}")
+
+        session['temp_user'] = {'name': name, 'email': email, 'phone': phone, 'password': password}
+        flash(f"OTP sent to your {otp_channel}.", "info")
+        return redirect('/verify_otp')
 
     return render_template('register.html')
+
+
+#>>>>>>>>>>>>>>verify otp>>>>>>>>>>
+
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if request.method == 'POST':
+        otp_input = request.form['otp']
+        temp_user = session.get('temp_user')
+
+        if not temp_user:
+            flash("Session expired. Please register again.", "danger")
+            return redirect('/register')
+
+        correct_otp = otp_storage.get(temp_user['email'])
+
+        if otp_input == correct_otp:
+            # Save to DB
+            new_user = User(
+                name=temp_user['name'],
+                email=temp_user['email'],
+                phone=temp_user['phone'],
+                password=temp_user['password']
+            )
+            db.session.add(new_user)
+            db.session.commit()
+
+            session.pop('temp_user', None)
+            otp_storage.pop(temp_user['email'], None)
+
+            flash("Registration complete! You can now log in.", "success")
+            return redirect('/login')
+        else:
+            flash("Invalid OTP. Try again.", "danger")
+
+    return render_template('verify_otp.html')
+
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():

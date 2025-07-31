@@ -414,14 +414,12 @@ def register():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        username = request.form['username']
-        user = User.query.filter_by(username=username).first()
-        if user:
-            send_email(user.username, f"Reset link: /reset_password?username={user.username}")
-            flash('Password reset link sent.', 'info')
-            return redirect('/login')
-        flash('Username not found!', 'danger')
+        email = request.form['email']
+        # Add logic to verify email and send reset link or OTP
+        flash('Password reset link sent to your email (mocked).', 'info')
+        return redirect(url_for('login'))
     return render_template('forgot_password.html')
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():

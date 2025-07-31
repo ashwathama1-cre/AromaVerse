@@ -2,7 +2,14 @@
 {% block title %}Login | Itra Store{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center justify-content-center vh-100 bg-light">
+<style>
+  body {
+    background: url("{{ url_for('static', filename='images/login-bg.jpg') }}") no-repeat center center fixed;
+    background-size: cover;
+  }
+</style>
+
+<div class="d-flex align-items-center justify-content-center vh-100 bg-overlay">
   <div class="login-card col-md-4 col-sm-10 bg-white shadow rounded-4 p-4">
     <div class="login-icon text-center">
       <i class="bi bi-person-circle display-4 text-primary mb-3"></i>

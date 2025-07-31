@@ -2,24 +2,46 @@
 {% block title %}Product Type Overview | Itra Store{% endblock %}
 
 {% block content %}
-<h2 class="mb-4 text-center">📂 Product Type Overview</h2>
+<h2 class="mb-4 text-center">🧪 Product Type Overview</h2>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-  {% if types %}
-    {% for type in types %}
-      <div class="col">
-        <div class="card h-100 shadow-sm">
-          <img src="{{ type.image }}" class="card-img-top" alt="{{ type.name }}" style="height: 200px; object-fit: cover;">
-          <div class="card-body text-center">
-            <h5 class="card-title">{{ type.name }}</h5>
-            <p class="card-text">🔢 {{ type.count }} Products</p>
-            <a href="{{ url_for('buyer_dashboard', filter=type.name) }}" class="btn btn-outline-primary">View {{ type.name }}</a>
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p class="text-center">No product types available.</p>
-  {% endif %}
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>🖼️ Image</th>
+        <th>📦 Product Name</th>
+        <th>🧪 Type</th>
+        <th>📈 Total Quantity</th>
+        <th>🛒 Sold</th>
+        <th>📦 Remaining</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if product_overview %}
+        {% for item in product_overview %}
+        <tr class="text-center">
+          <td>
+            <img src="{{ url_for('static', filename='uploads/' ~ item.image) }}" 
+                 alt="{{ item.name }}" width="60" height="60" 
+                 style="object-fit: cover; border-radius: 8px;">
+          </td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.type }}</td>
+          <td>{{ item.total_quantity }}</td>
+          <td>{{ item.sold_quantity }}</td>
+          <td>
+            <span class="{% if item.remaining_quantity == 0 %}text-danger{% elif item.remaining_quantity < 10 %}text-warning{% else %}text-success{% endif %}">
+              {{ item.remaining_quantity }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">No product data available.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

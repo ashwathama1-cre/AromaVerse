@@ -500,6 +500,29 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 
+#>>>>>>>>>send otp
+@app.route("/send_otp", methods=["POST"])
+def send_otp():
+    data = request.get_json()
+    method = data.get("method")
+    contact = data.get("contact")
+    country_code = data.get("country_code", "")
+
+    otp = str(random.randint(100000, 999999))
+
+    if method == "email":
+        send_email(contact, "Your OTP", f"Your OTP is: {otp}")
+    elif method == "phone":
+        phone_number = country_code + contact
+        send_sms(phone_number, f"Your OTP is: {otp}")
+    else:
+        return jsonify({"message": "Invalid method"}), 400
+
+    session["otp"] = otp
+    session["otp_contact"] = contact
+    return jsonify({"message": "OTP sent successfully"})
+
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():

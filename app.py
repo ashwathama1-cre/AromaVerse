@@ -486,6 +486,18 @@ def forgot_password():
 
     return render_template('forgot_password.html')
 
+#>>>>>>>>>>>>>>>>>>>>>>>>
+
+def send_email(to, subject, message):
+    logging.info(f"[MOCK EMAIL] To: {to}, Subject: {subject}, Message: {message}")
+    # Real email sending code will go here in production
+
+def send_sms(phone_number, message):
+    logging.info(f"[MOCK SMS] To: {phone_number}, Message: {message}")
+    # Real SMS sending code will go here in production
+
+
+
 
 #>>>>>>>>>send otp
 @app.route('/send_otp_phone', methods=['POST'])
@@ -514,6 +526,47 @@ def send_otp_phone():
 
     return jsonify({"message": f"OTP sent to {method}"}), 200
 
+#>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>
+@app.route('/send_otp', methods=['POST'])
+def send_otp_generic():
+    try:
+        data = request.get_json()
+        method = data.get("method")
+        contact = data.get("contact")
+        country_code = data.get("country_code", "")
+
+        logging.debug(f"Received OTP request: method={method}, contact={contact}, country_code={country_code}")
+
+        if not method or not contact:
+            logging.warning("Missing method or contact in OTP request.")
+            return jsonify({"message": "Missing contact or method"}), 400
+
+        otp = str(random.randint(100000, 999999))
+
+        if method == "email":
+            # Replace with real email sender in production
+            logging.info(f"Sending OTP via email to {contact}: {otp}")
+            send_email(contact, "Your OTP", f"Your OTP is: {otp}")
+
+        elif method == "phone":
+            phone_number = country_code + contact
+            logging.info(f"Sending OTP via SMS to {phone_number}: {otp}")
+            send_sms(phone_number, f"Your OTP is: {otp}")
+
+        else:
+            logging.error(f"Invalid OTP method received: {method}")
+            return jsonify({"message": "Invalid method"}), 400
+
+        # Store OTP and contact in session
+        session["otp"] = otp
+        session["otp_contact"] = contact
+
+        logging.debug(f"OTP {otp} stored in session for contact: {contact}")
+        return jsonify({"message": "OTP sent successfully"})
+
+    except Exception as e:
+        logging.exception("Error occurred while sending OTP.")
+        return jsonify({"message": "Failed to send OTP. Please try again."}), 500
 
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required

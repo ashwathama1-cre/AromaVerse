@@ -1,15 +1,31 @@
 {% extends "base.html" %}
+{% block title %}Verify OTP | Itra Store{% endblock %}
 {% block content %}
 <div class="container py-5">
   <div class="col-md-6 mx-auto bg-light p-4 rounded shadow">
-    <h4>🔒 Enter the OTP</h4>
+    <h4 class="mb-3">🔒 Enter the OTP</h4>
+    <p class="text-muted">This OTP is valid for <span id="countdown">{{ time_left }}</span> seconds.</p>
+    
     <form method="POST">
       <div class="mb-3">
         <label>OTP</label>
         <input type="text" name="otp" class="form-control" required>
       </div>
-      <button type="submit" class="btn btn-primary">Verify & Complete Registration</button>
+      <button type="submit" class="btn btn-primary">Verify OTP</button>
     </form>
   </div>
 </div>
+
+<script>
+  let seconds = parseInt(document.getElementById("countdown").innerText);
+  let countdown = setInterval(() => {
+    seconds--;
+    document.getElementById("countdown").innerText = seconds;
+    if (seconds <= 0) {
+      clearInterval(countdown);
+      alert("⏰ OTP expired! Please try again.");
+      window.location.href = "/";
+    }
+  }, 1000);
+</script>
 {% endblock %}

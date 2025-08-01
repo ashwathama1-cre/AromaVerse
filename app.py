@@ -437,13 +437,17 @@ def create_admin_if_not_exists():
             print("✅ Admin user created with username='admin' and password='1234'")
         except Exception as e:
             logging.error(f"Failed to create admin user: {e}")
-# route
+from random import randint
+
+otp_storage = {}
+
 @app.route('/')
 def home():
     return redirect('/login')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    prefill_username = request.args.get('prefill_username', '')  # default empty
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
@@ -452,7 +456,7 @@ def login():
         if user and check_password_hash(user.password, password):
             session['username'] = username
             session['role'] = user.role
-            session['user_id'] = user.id  # ✅ Add this line
+            session['user_id'] = user.id
             session.permanent = True
 
             if user.role == 'admin':
@@ -464,9 +468,8 @@ def login():
         else:
             flash('Invalid credentials', 'danger')
             return redirect(url_for('login'))
-    return render_template('login.html')
-
-
+    
+    return render_template("login.html", error=None, csrf_token=generate_csrf(), prefill_username=prefill_username)
 
 @app.route('/logout')
 def logout():
@@ -474,32 +477,25 @@ def logout():
     flash("Logged out successfully!", "info")
     return redirect('/login')
 
-from random import randint
-otp_storage = {}
-
-# Dummy in-memory database (replace with SQLAlchemy for production)
-users = {}
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-         # Extract form data
         username = request.form.get("username")
         email = request.form.get("email")
         password = request.form.get("password")
-        
-        # 👇 Here’s where you handle the phone input with country code
-        country_code = request.form.get("country_code")  # e.g. +91
-        phone = request.form.get("phone")                # e.g. 9876543210
-        full_phone = f"{country_code}{phone}"            # → +919876543210
-        
-        # Now use `full_phone` for saving to DB or sending OTP
-        print("Full Phone:", full_phone)
-        flash(f"OTP sent to your email! (Simulated OTP: {otp})", "info")  # In production, send via email/SMS
+        country_code = request.form.get("country_code")
+        phone = request.form.get("phone")
+        full_phone = f"{country_code}{phone}"
+
+        # Send fake OTP
+        otp = randint(100000, 999999)
+        otp_storage[email] = otp
+        print(f"Generated OTP for {email}: {otp}")
+
+        flash(f"OTP sent to your email! (Simulated OTP: {otp})", "info")
         return redirect('/verify_otp')
 
-    return render_template('register.html')
-
+    return render_template('register.html', csrf_token=generate_csrf())
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():

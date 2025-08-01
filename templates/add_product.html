@@ -5,6 +5,9 @@
 <div class="container py-4">
   <h2>Add New Itra Product</h2>
   <form method="POST" enctype="multipart/form-data">
+    <!-- ✅ CSRF Token Fix -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
     <div class="mb-3">
       <label>Name:</label>
       <input type="text" name="name" class="form-control" required>

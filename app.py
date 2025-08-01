@@ -59,6 +59,9 @@ logging.basicConfig(
     level=logging.ERROR,
     format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 )
+send_email(contact, "🔐 Your OTP", f"Your AromaVerse OTP is: {otp}")
+send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
+
 
 # ------------------ MODELS ------------------
 
@@ -604,6 +607,22 @@ def send_sms(phone_number, message):
     logging.info(f"[MOCK SMS] To: {phone_number}, Message: {message}")
     # Real SMS sending code will go here in production
 
+#>>>>.otp to email
+import smtplib
+from email.mime.text import MIMEText
+
+def send_email(to, subject, body):
+    sender_email = os.getenv("EMAIL_ADDRESS")  # e.g. your Gmail
+    sender_password = os.getenv("EMAIL_PASSWORD")
+
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = to
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
 
 
 
@@ -640,6 +659,26 @@ def send_otp_phone():
     except Exception as e:
         print(f"[ERROR] OTP sending failed: {e}")
         return jsonify({"message": "Internal server error."}), 500
+#>>>>>>>________)__---------send sms
+
+import requests
+
+
+def send_sms(phone_number, message):
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    payload = {
+        "authorization": os.getenv("FAST2SMS_API_KEY"),
+        "route": "q",
+        "message": message,
+        "language": "english",
+        "flash": 0,
+        "numbers": phone_number
+    }
+    headers = {
+        'cache-control': "no-cache"
+    }
+    response = requests.post(url, data=payload, headers=headers)
+    print(response.text)
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>
@@ -686,30 +725,7 @@ def send_otp_generic():
 
 
 #>>>>>>>>resend otp
-@app.route('/verify_otp', methods=['POST'])
-def verify_otp():
-    email = session.get('otp_email')
-    entered_otp = request.form['otp']
 
-    otp_info = otp_storage.get(email)
-    if not otp_info:
-        flash("❌ OTP expired or not found", "danger")
-        return redirect(url_for('verify_otp'))
-
-    if datetime.now() > otp_info['expires']:
-        flash("❌ OTP expired", "danger")
-        return redirect(url_for('verify_otp'))
-
-    if entered_otp != otp_info['otp']:
-        flash("❌ Invalid OTP", "danger")
-        return redirect(url_for('verify_otp'))
-
-    # ✅ OTP is correct – now reset the resend count
-    session.pop('resend_count', None)
-
-    # Proceed with login or verification success
-    flash("✅ OTP verified successfully", "success")
-    return redirect('/dashboard')  # or wherever you want
 
 
 

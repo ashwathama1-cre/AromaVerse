@@ -265,14 +265,18 @@ def trigger_insertion():
     return "✅ Sample attars inserted."
 
 
-# insert 
 import uuid
+from werkzeug.security import generate_password_hash
+from your_app import db  # Replace with your actual app module name
+from your_app.models import User, Product  # Replace with your actual models if needed
+
 def insert_attar_products():
     seller = User.query.filter_by(username="admin_seller").first()
     if not seller:
         seller = User(username="admin_seller", email="admin@attar.com", role="seller", password=generate_password_hash("1234"))
         db.session.add(seller)
         db.session.commit()
+
     # Sample attars
     attars = [
         {
@@ -357,7 +361,7 @@ def insert_attar_products():
         }
     ]
 
-      for a in attars:
+    for a in attars:
         if not Product.query.filter_by(name=a['name']).first():
             new_product = Product(
                 name=a['name'],
@@ -370,8 +374,10 @@ def insert_attar_products():
                 seller_id=seller.id
             )
             db.session.add(new_product)
+
     db.session.commit()
     print("✅ Sample attar products inserted.")
+
 
 # ------------------ Insert Sample Products ------------------
 

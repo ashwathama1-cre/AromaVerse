@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash,abort
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
+from flask_wtf.csrf import generate_csrf
+
 
 from flask import jsonify
 

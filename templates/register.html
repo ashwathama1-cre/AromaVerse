@@ -18,9 +18,7 @@
     {% endwith %}
 
     <form method="POST">
-      {% if csrf_token %}
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      {% endif %}
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
       <div class="mb-3">
         <label class="form-label">👤 Username</label>
@@ -32,23 +30,22 @@
         <input type="email" name="email" class="form-control" placeholder="Enter your email" required>
       </div>
 
-  <div class="mb-3">
-     <label for="phone" class="form-label">📱 Phone Number</label>
-     <div class="input-group">
-       <select class="form-select" id="country_code" name="country_code" style="max-width: 120px;" required>
-         <option value="+91" selected>🇮🇳 +91</option>
-         <option value="+1">🇺🇸 +1</option>
-         <option value="+44">🇬🇧 +44</option>
-           <option value="+61">🇦🇺 +61</option>
-         <option value="+81">🇯🇵 +81</option>
+      <div class="mb-3">
+        <label for="phone" class="form-label">📱 Phone Number</label>
+        <div class="input-group">
+          <select class="form-select" id="country_code" name="country_code" style="max-width: 120px;" required>
+            <option value="+91" selected>🇮🇳 +91</option>
+            <option value="+1">🇺🇸 +1</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+61">🇦🇺 +61</option>
+            <option value="+81">🇯🇵 +81</option>
             <option value="+971">🇦🇪 +971</option>
-          <option value="+880">🇧🇩 +880</option>
-         <option value="+92">🇵🇰 +92</option>
-          <!-- Add more as needed -->
-        </select>
-       <input type="text" class="form-control" id="phone" name="phone" placeholder="Enter phone number" required>
-     </div>
-     </div>
+            <option value="+880">🇧🇩 +880</option>
+            <option value="+92">🇵🇰 +92</option>
+          </select>
+          <input type="text" class="form-control" id="phone" name="phone" placeholder="Enter phone number" required>
+        </div>
+      </div>
 
       <div class="mb-3">
         <label class="form-label">🔑 Password</label>

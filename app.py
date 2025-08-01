@@ -741,22 +741,30 @@ def send_otp():
 
 
 
-def send_sms(phone_number, message):
+
+def generate_otp():
+    """Generates a 6-digit OTP"""
+    return str(random.randint(100000, 999999))
+
+def send_otp_sms(phone_number):
     try:
+        otp = generate_otp()
+        message = f"Your OTP is {otp}"
+
         api_key = os.getenv("FAST2SMS_API_KEY")
         if not api_key:
             logging.error("❌ Fast2SMS API key not set in environment variables.")
-            return False
+            return None  # Not False — return None to indicate OTP not sent
 
         url = "https://www.fast2sms.com/dev/bulkV2"
 
         payload = {
-               "route": "q",  # for quick message
-               "message": message,
-               "language": "english",
-               "numbers": phone_number
-                         }
-  
+            "route": "q",
+            "message": message,
+            "language": "english",
+            "numbers": phone_number
+        }
+
         headers = {
             'authorization': api_key,
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -768,18 +776,19 @@ def send_sms(phone_number, message):
         if response.status_code == 200:
             result = response.json()
             if result.get("return") == True:
-                logging.info(f"✅ SMS sent successfully to {phone_number}")
-                return True
+                logging.info(f"✅ OTP sent successfully to {phone_number}")
+                return otp  # Return the OTP for further verification
             else:
                 logging.error(f"❌ SMS sending failed: {result}")
-                return False
+                return None
         else:
             logging.error(f"❌ HTTP Error {response.status_code}: {response.text}")
-            return False
+            return None
 
     except Exception as e:
-        logging.exception(f"❌ Exception while sending SMS to {phone_number}: {e}")
-        return False
+        logging.exception(f"❌ Exception while sending OTP to {phone_number}: {e}")
+        return None
+
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>

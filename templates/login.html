@@ -31,14 +31,15 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('login') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input type="hidden" name="mode" id="loginMode" value="password">
-
-      <div class="toggle-btns d-flex mb-3">
+   <form method="POST" action="{{ url_for('login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+       <input type="hidden" name="mode" id="loginMode" value="password">
+   
+       <div class="toggle-btns d-flex mb-3">
         <button type="button" class="btn btn-outline-primary active" onclick="toggleMode('password')">🔐 Password Login</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP Login</button>
-      </div>
+       <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP Login</button>
+     </div>
+
 
       <!-- Password Login Fields -->
       <div id="passwordFields">

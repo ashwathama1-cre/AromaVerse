@@ -590,8 +590,6 @@ def dashboard():
 #>>>>>>>>>>send otp 
 
 
-def generate_otp():
-    return str(random.randint(100000, 999999))
 
 
 

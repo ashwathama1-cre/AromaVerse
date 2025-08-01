@@ -34,6 +34,7 @@
 
     <!-- Login Form -->
     <form method="POST" action="{{ url_for('login') }}">
+      {{ form.csrf_token }}
       {{ form.hidden_tag() }}
       <input type="hidden" name="mode" id="loginMode" value="password">
 
@@ -59,14 +60,14 @@
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
           <label class="form-label">🌍 Country Code</label>
-          <input type="text" id="countryCode" class="form-control" placeholder="+91" required>
+          <input type="text" id="countryCode" class="form-control" placeholder="+91">
         </div>
         <div class="mb-3">
           <label class="form-label">📞 Phone Number</label>
-          <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number" required>
+          <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
         </div>
         <div class="mb-3 d-flex">
-          <input type="text" name="otp" class="form-control me-2" placeholder="Enter OTP" required>
+          <input type="text" name="otp" class="form-control me-2" placeholder="Enter OTP">
           <button type="button" class="btn btn-outline-success" onclick="sendOTP()">📤 Send OTP</button>
         </div>
       </div>
@@ -110,11 +111,10 @@
   }
 
   function getCookie(name) {
-    const cookies = document.cookie.split(';').map(c => c.trim());
-    for (let c of cookies) {
-      if (c.startsWith(name + '=')) return decodeURIComponent(c.split('=')[1]);
-    }
-    return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+    return "";
   }
 
   function sendOTP() {

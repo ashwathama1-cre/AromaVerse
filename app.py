@@ -42,7 +42,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "default_secret_key")  # Ensure this exists
 csrf = CSRFProtect(app)  # ✅ Activate CSRF protection
 
-
+app.config['SECRET_KEY'] = 'supersecret123'  # ✅ Required for CSRF protection
 
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'static/uploads/')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -1576,4 +1576,5 @@ def page_not_found(e):
 # ----------------- Main App Entry -----------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 

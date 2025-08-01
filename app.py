@@ -75,7 +75,7 @@ class Product(db.Model):
     sold = db.Column(db.Integer, default=0)  # Number of units sold
     image = db.Column(db.String(200))  # image filename or path
     seller_id = db.Column(db.Integer, db.ForeignKey('user.id'))  # foreign key to seller
-
+    description = db.Column(db.Text)  # ✅ ADD THIS LINE
     # Optional: Define relationship back to User (seller)
     seller = db.relationship('User', backref='products')
 

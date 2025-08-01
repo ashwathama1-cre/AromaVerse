@@ -684,6 +684,28 @@ def send_otp_generic():
         logging.exception("Error occurred while sending OTP.")
         return jsonify({"message": "Failed to send OTP. Please try again."}), 500
 
+
+#>>>>>>>>resend otp
+@app.route('/resend_otp', methods=['POST'])
+def resend_otp():
+    email = session.get('otp_email')
+    if not email:
+        return jsonify({'status': 'error', 'message': 'Session expired'}), 400
+
+    otp = str(uuid.uuid4().int)[-6:]
+    otp_storage[email] = {
+        'otp': otp,
+        'expires': datetime.now() + timedelta(minutes=2)
+    }
+
+    # Send OTP via email (implement your mail logic here)
+    send_email(email, f"Your new OTP is: {otp}")
+
+    return jsonify({'status': 'success'})
+
+
+
+
 @app.route('/change_password', methods=['GET', 'POST'])
 @login_required
 def change_password():

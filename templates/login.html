@@ -33,7 +33,6 @@
     {% endwith %}
 
     <form method="POST" action="/login">
-      <!-- ✅ CSRF token properly added -->
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="mode" id="loginMode" value="password">
 
@@ -57,7 +56,11 @@
       <!-- OTP Login Fields -->
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
-          <label class="form-label">📞 Phone</label>
+          <label class="form-label">🌍 Country Code</label>
+          <input type="text" id="countryCode" class="form-control" placeholder="+91" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">📞 Phone Number</label>
           <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
         </div>
         <div class="mb-3 d-flex">
@@ -103,19 +106,25 @@
   }
 
   function sendOTP() {
-    const phone = document.getElementById("phone").value;
-    if (!phone) {
-      alert("Please enter phone number first.");
+    const phone = document.getElementById("phone").value.trim();
+    const countryCode = document.getElementById("countryCode").value.trim();
+
+    if (!phone || !countryCode) {
+      alert("Please enter both phone number and country code.");
       return;
     }
 
-    fetch("/send_otp", {
+    fetch("/send_otp_phone", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": getCookie("csrf_token")
       },
-      body: JSON.stringify({ phone: phone })
+      body: JSON.stringify({
+        method: "phone",
+        contact: phone,
+        country_code: countryCode
+      })
     })
     .then(response => response.json())
     .then(data => alert(data.message || "OTP sent!"))

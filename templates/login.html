@@ -33,7 +33,9 @@
     {% endwith %}
 
     <form method="POST" id="loginForm">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+
+
       <input type="hidden" name="mode" id="loginMode" value="password">
 
       <div class="toggle-btns d-flex mb-3">

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Send OTP{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow rounded-4">
+        <div class="card-body">
+          <h3 class="card-title text-center mb-4">🔐 Send OTP</h3>
+
+          <div class="mb-3">
+            <label for="email" class="form-label">Enter Your Email</label>
+            <input type="email" id="email" class="form-control" placeholder="your@email.com" required>
+          </div>
+
+          <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="d-grid">
+            <button onclick="sendOTP()" class="btn btn-primary">Send OTP</button>
+          </div>
+
+          <div id="message" class="mt-3 text-success text-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function sendOTP() {
+    const csrfToken = document.getElementById('csrf_token').value;
+    const email = document.getElementById('email').value;
+
+    if (!email) {
+      document.getElementById('message').innerText = "❗ Please enter your email.";
+      return;
+    }
+
+    const res = await fetch('/send_otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ email: email })
+    });
+
+    const data = await res.json();
+    document.getElementById('message').innerText = data.message;
+
+    // Optional: Redirect to verify page after 2s
+    setTimeout(() => {
+      window.location.href = "/verify_otp";
+    }, 2000);
+  }
+</script>
+{% endblock %}

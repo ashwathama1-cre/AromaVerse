@@ -32,7 +32,11 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" id="loginForm">
+     <form method="POST" action="/send_otp">
+         {{ form.hidden_tag() }}
+         <!-- your form fields -->
+            </form>
+
      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
 
 

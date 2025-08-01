@@ -1,72 +1,94 @@
 {% extends "base.html" %}
-{% block title %}Verify OTP | Itra Store{% endblock %}
+{% block title %}Send OTP | AromaVerse{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <div class="col-md-6 mx-auto bg-light p-4 rounded shadow">
-    <h4 class="mb-3">🔒 OTP Verification</h4>
-    <p class="text-muted">
-      OTP sent to <strong>{{ session.get('otp_email')|replace('@', ' [at] ')|replace(session.get('otp_email')[1:-10], '*' * len(session.get('otp_email')[1:-10])) }}</strong><br>
-      Valid for <span id="countdown">{{ time_left }}</span>.
-    </p>
+<div class="container mt-5">
+  <div class="card mx-auto shadow-lg" style="max-width: 500px;">
+    <div class="card-body">
+      <h4 class="text-center mb-4">🔐 Send OTP</h4>
 
-    <form method="POST" id="otpForm">
-      {{ csrf_token() }}
-      <div class="mb-3">
-        <label for="otp">Enter OTP</label>
-        <input type="text" name="otp" id="otp" class="form-control" required>
-      </div>
-      <button type="submit" id="submitBtn" class="btn btn-primary">✅ Verify OTP</button>
-      <button type="button" id="resendBtn" class="btn btn-warning mt-2" onclick="resendOTP()" disabled>
-        🔁 Resend OTP <span id="spinner" class="spinner-border spinner-border-sm d-none"></span>
-      </button>
-    </form>
+      <form id="otpForm">
+        <div class="mb-3">
+          <label class="form-label">Method</label>
+          <select class="form-select" id="method" required>
+            <option value="">-- Select Method --</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+
+        <div id="emailInput" class="mb-3 d-none">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-control" id="email" placeholder="user@example.com">
+        </div>
+
+        <div id="phoneInputs" class="d-none">
+          <div class="mb-3">
+            <label class="form-label">Country Code</label>
+            <input type="text" class="form-control" id="countryCode" placeholder="+91">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input type="text" class="form-control" id="phone" placeholder="9876543210">
+          </div>
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">📤 Send OTP</button>
+        </div>
+      </form>
+
+      <div id="otpResult" class="mt-4 text-center"></div>
+    </div>
   </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-  let seconds = parseInt(document.getElementById("countdown").innerText);
-  const countdownDisplay = document.getElementById("countdown");
-  const submitBtn = document.getElementById("submitBtn");
-  const resendBtn = document.getElementById("resendBtn");
-  const spinner = document.getElementById("spinner");
+document.getElementById("method").addEventListener("change", function () {
+  const method = this.value;
+  document.getElementById("emailInput").classList.toggle("d-none", method !== "email");
+  document.getElementById("phoneInputs").classList.toggle("d-none", method !== "phone");
+});
 
-  let countdown = setInterval(() => {
-    seconds--;
-    let mins = Math.floor(seconds / 60);
-    let secs = seconds % 60;
-    countdownDisplay.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    if (seconds <= 0) {
-      clearInterval(countdown);
-      countdownDisplay.innerText = "00:00";
-      submitBtn.disabled = true;
-      resendBtn.disabled = false;
-    }
-  }, 1000);
+document.getElementById("otpForm").addEventListener("submit", function (e) {
+  e.preventDefault();
 
-  function resendOTP() {
-    resendBtn.disabled = true;
-    spinner.classList.remove('d-none');
+  const method = document.getElementById("method").value;
+  const email = document.getElementById("email").value.trim();
+  const countryCode = document.getElementById("countryCode").value.trim();
+  const phone = document.getElementById("phone").value.trim();
 
-    fetch("/resend_otp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": "{{ csrf_token() }}"
-      },
-      body: JSON.stringify({ email: "{{ session.get('otp_email') }}" })
-    })
-    .then(res => res.json())
-    .then(data => {
-      spinner.classList.add('d-none');
-      if (data.status === "success") {
-        alert("✅ OTP resent to your email.");
-        location.reload();
-      } else {
-        alert(`❌ ${data.message}`);
-        resendBtn.disabled = false;
-      }
-    });
+  let payload = { method };
+
+  if (method === "email") {
+    payload.contact = email;
+  } else if (method === "phone") {
+    payload.contact = phone;
+    payload.country_code = countryCode;
+  } else {
+    return alert("Please select a valid method.");
   }
+
+  fetch("/send_otp_phone", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      const output = document.getElementById("otpResult");
+      if (data.status === "success") {
+        output.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+        setTimeout(() => window.location.href = "/verify_otp", 1000);
+      } else {
+        output.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+      }
+    })
+    .catch((err) => {
+      document.getElementById("otpResult").innerHTML = `<div class="alert alert-danger">Error sending OTP.</div>`;
+    });
+});
 </script>
 {% endblock %}

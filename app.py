@@ -460,10 +460,10 @@ def login():
         if mode == 'password':
             username = request.form['username'].strip()
             password = request.form['password']
-
             user = User.query.filter_by(username=username).first()
+
             if user and check_password_hash(user.password, password):
-                session['username'] = username
+                session['username'] = user.username
                 session['role'] = user.role
                 session.permanent = remember
                 user.last_login = datetime.now()
@@ -478,6 +478,7 @@ def login():
             phone = request.form['phone'].strip()
             otp = request.form['otp'].strip()
             user = User.query.filter_by(phone=phone).first()
+
             if user and user.otp == otp:
                 session['username'] = user.username
                 session['role'] = user.role
@@ -489,9 +490,9 @@ def login():
                 flash("OTP login successful", "success")
                 return redirect(url_for('admin_dashboard') if user.role == 'admin' else url_for('buyer_dashboard'))
             else:
-                flash("Invalid phone or OTP", "danger")
+                flash("Invalid phone number or OTP", "danger")
 
-    return render_template("login.html", csrf_token=generate_csrf)
+    return render_template("login.html", csrf_token=generate_csrf())
 
 @app.route('/logout')
 def logout():
@@ -629,45 +630,61 @@ def send_email(to, subject, body):
 
 #>>>>>>>>>send otp
 @app.route('/send_otp_phone', methods=['POST'])
-@csrf.exempt  # Only if this is used in public API (optional)
+@csrf.exempt  # Use only if endpoint accessed via public frontend (AJAX). Remove if you're using CSRF token securely.
 def send_otp_phone():
     try:
+        if not request.is_json:
+            return jsonify({"status": "error", "message": "Invalid request format. JSON expected."}), 400
+
         data = request.get_json()
-        method = data.get("method")
+        method = data.get("method", "").strip().lower()
         contact = data.get("contact", "").strip()
         country_code = data.get("country_code", "").strip()
 
         if not method or not contact:
-            return jsonify({"message": "Method and contact are required."}), 400
+            return jsonify({"status": "error", "message": "Both method and contact are required."}), 400
 
-        otp = str(random.randint(100000, 999999))
-        expiry_time = datetime.now() + timedelta(minutes=2)
+        # OTP generation: 6-digit numeric
+        otp = f"{random.randint(100000, 999999)}"
+        expiry_time = datetime.utcnow() + timedelta(minutes=2)
 
-        # 🟢 Email OTP
         if method == "email":
-            send_email(contact, "🔐 Your OTP", f"Your AromaVerse OTP is: {otp}")
+            # ✅ Basic email validation
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", contact):
+                return jsonify({"status": "error", "message": "Invalid email address."}), 400
 
-        # 📱 Phone OTP
+            send_email(contact, "🔐 AromaVerse OTP", f"Your OTP is: {otp}")
+            delivery_status = "sent via email"
+
         elif method == "phone":
-            phone_number = f"{country_code}{contact}"
-            success = send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
-            if not success:
-                return jsonify({"message": "Failed to send SMS."}), 500
+            # ✅ Phone number validation (digits only)
+            if not contact.isdigit() or not country_code.startswith('+'):
+                return jsonify({"status": "error", "message": "Invalid phone or country code."}), 400
+
+            full_phone = f"{country_code}{contact}"
+            if not send_sms(full_phone, f"🔐 Your AromaVerse OTP is: {otp}"):
+                return jsonify({"status": "error", "message": "SMS sending failed."}), 500
+            delivery_status = "sent via SMS"
 
         else:
-            return jsonify({"message": "Invalid method. Use 'email' or 'phone'."}), 400
+            return jsonify({"status": "error", "message": "Invalid method. Use 'email' or 'phone'."}), 400
 
-        # 🧠 Store OTP and expiry in session
+        # 🔐 Save OTP to session
+        session["otp"] = otp
         session["otp_contact"] = contact
         session["otp_method"] = method
-        session["otp"] = otp
         session["otp_expires"] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
 
-        return jsonify({"message": f"OTP sent via {method}."}), 200
+        logging.info(f"[OTP] {method.upper()} OTP sent to {contact} | Expires at: {session['otp_expires']}")
+        return jsonify({
+            "status": "success",
+            "message": f"OTP successfully {delivery_status}.",
+            "expires_in": 120  # seconds
+        }), 200
 
     except Exception as e:
-        logging.error(f"[ERROR] OTP sending failed: {e}")
-        return jsonify({"message": "Internal server error."}), 500
+        logging.error(f"[ERROR] OTP sending failed: {str(e)}")
+        return jsonify({"status": "error", "message": "Internal server error."}), 500
 
 
 import requests

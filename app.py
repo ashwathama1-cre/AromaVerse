@@ -7,6 +7,9 @@ from flask import jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf import CSRFProtect
+# In your main file or Flask shell
+from your_app import db
+
 
 
 from functools import wraps
@@ -45,7 +48,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
+db.create_all()
 csrf = CSRFProtect(app)
 
 LOG_FILE = 'logs/error.log'

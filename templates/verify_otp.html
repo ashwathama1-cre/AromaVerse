@@ -4,28 +4,65 @@
 <div class="container py-5">
   <div class="col-md-6 mx-auto bg-light p-4 rounded shadow">
     <h4 class="mb-3">🔒 Enter the OTP</h4>
-    <p class="text-muted">This OTP is valid for <span id="countdown">{{ time_left }}</span> seconds.</p>
-    
-    <form method="POST">
+    <p class="text-muted">
+      This OTP is valid for <span id="countdown">{{ time_left }}</span>.
+    </p>
+
+    <form method="POST" id="otpForm">
+      {{ csrf_token() }}
       <div class="mb-3">
-        <label>OTP</label>
-        <input type="text" name="otp" class="form-control" required>
+        <label for="otp">OTP</label>
+        <input type="text" name="otp" id="otp" class="form-control" required>
       </div>
-      <button type="submit" class="btn btn-primary">Verify OTP</button>
+      <button type="submit" id="submitBtn" class="btn btn-primary">✅ Verify OTP</button>
+      <button type="button" id="resendBtn" class="btn btn-warning mt-2" onclick="resendOTP()" disabled>🔁 Resend OTP</button>
     </form>
   </div>
 </div>
 
 <script>
   let seconds = parseInt(document.getElementById("countdown").innerText);
+  const countdownDisplay = document.getElementById("countdown");
+  const submitBtn = document.getElementById("submitBtn");
+  const resendBtn = document.getElementById("resendBtn");
+
   let countdown = setInterval(() => {
     seconds--;
-    document.getElementById("countdown").innerText = seconds;
+    let mins = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    countdownDisplay.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
     if (seconds <= 0) {
       clearInterval(countdown);
-      alert("⏰ OTP expired! Please try again.");
-      window.location.href = "/";
+      countdownDisplay.innerText = "00:00";
+      submitBtn.disabled = true;
+      resendBtn.disabled = false;
     }
   }, 1000);
+
+  function resendOTP() {
+    resendBtn.disabled = true;
+    resendBtn.innerText = "⏳ Resending...";
+
+    fetch("/resend_otp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token() }}"
+      },
+      body: JSON.stringify({ email: "{{ session.get('otp_email') }}" })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        alert("✅ OTP resent to your email.");
+        location.reload(); // Restart countdown
+      } else {
+        alert("❌ Failed to resend OTP.");
+        resendBtn.disabled = false;
+        resendBtn.innerText = "🔁 Resend OTP";
+      }
+    });
+  }
 </script>
 {% endblock %}

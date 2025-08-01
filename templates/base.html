@@ -5,11 +5,13 @@
   <title>{% block title %}Perfume Mark | Itra Store{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- CSRF Token for security (if needed in AJAX) -->
-  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <!-- CSRF Token -->
+  <meta name="csrf-token" content="{{ csrf_token() }}"/>
 
-  <!-- Bootstrap & Icons -->
+  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+  
+  <!-- FontAwesome Icons -->
   <script src="https://kit.fontawesome.com/a2d9d5ea8f.js" crossorigin="anonymous"></script>
 
   {% block head %}{% endblock %}
@@ -20,11 +22,12 @@
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">🧴 Perfume Mark</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+
       <div class="collapse navbar-collapse" id="navMenu">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
           <li class="nav-item"><a class="nav-link" href="/dashboard">🏠 Dashboard</a></li>
           <li class="nav-item"><a class="nav-link" href="/cart">🛒 Cart</a></li>
           <li class="nav-item"><a class="nav-link" href="/logout">🚪 Logout</a></li>
@@ -33,42 +36,18 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
+  <!-- Main Content Area -->
   <main class="container py-4 flex-grow-1">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- OTP Countdown Timer -->
+  <!-- OTP Countdown Block -->
   {% if show_timer %}
   <div class="container text-center mb-4">
     <div class="alert alert-info" id="otp-timer">
       ⏳ OTP expires in <span id="countdown">2:00</span> minutes.
     </div>
   </div>
-  <script>
-    let duration = 120;
-    const countdownEl = document.getElementById("countdown");
-    const otpBox = document.getElementById("otp-timer");
-
-    const timer = setInterval(() => {
-      let minutes = Math.floor(duration / 60);
-      let seconds = duration % 60;
-      countdownEl.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-      duration--;
-
-      if (duration < 0) {
-        clearInterval(timer);
-        otpBox.classList.replace('alert-info', 'alert-danger');
-        otpBox.innerHTML = "⛔ OTP has expired. Please request a new one.";
-        const form = document.querySelector("form");
-        if (form) {
-          form.querySelectorAll("input, button").forEach(el => el.disabled = true);
-        }
-        const resendBtn = document.getElementById("resend-btn");
-        if (resendBtn) resendBtn.disabled = false;
-      }
-    }, 1000);
-  </script>
   {% endif %}
 
   <!-- Footer -->
@@ -78,6 +57,36 @@
 
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- OTP Timer Script -->
+  {% if show_timer %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      let duration = 120;
+      const countdownEl = document.getElementById("countdown");
+      const otpBox = document.getElementById("otp-timer");
+
+      const timer = setInterval(() => {
+        let minutes = Math.floor(duration / 60);
+        let seconds = duration % 60;
+        countdownEl.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        duration--;
+
+        if (duration < 0) {
+          clearInterval(timer);
+          otpBox.classList.replace('alert-info', 'alert-danger');
+          otpBox.innerHTML = "⛔ OTP has expired. Please request a new one.";
+          const form = document.querySelector("form");
+          if (form) {
+            form.querySelectorAll("input, button").forEach(el => el.disabled = true);
+          }
+          const resendBtn = document.getElementById("resend-btn");
+          if (resendBtn) resendBtn.disabled = false;
+        }
+      }, 1000);
+    });
+  </script>
+  {% endif %}
 
   {% block extra_js %}{% endblock %}
 </body>

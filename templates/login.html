@@ -7,23 +7,21 @@
     background: url("{{ url_for('static', filename='login-bg.jpg') }}") no-repeat center center fixed;
     background-size: cover;
   }
+
   .login-wrapper {
-          background-color: rgba(255, 255, 255, 0.2);  /* Less opaque */
-          backdrop-filter: blur(10px);                /* Glass effect */
-          border-radius: 20px;
-         padding: 30px;
-  }
-            
-    {
-    width: 50%;
+    background-color: rgba(255, 255, 255, 0.1);  /* More transparent */
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   }
 </style>
 
-<div class="d-flex align-items-center justify-content-center vh-100 bg-overlay">
-  <div class="login-card col-md-5 col-sm-10 bg-white shadow rounded-4 p-4">
+<div class="d-flex align-items-center justify-content-center vh-100">
+  <div class="col-md-5 col-sm-10 login-wrapper">
     <div class="text-center mb-3">
-      <i class="bi bi-person-circle display-4 text-primary"></i>
-      <h3 class="mt-2">Login to AromaVerse</h3>
+      <i class="bi bi-person-circle display-4 text-light"></i>
+      <h3 class="mt-2 text-white">Login to AromaVerse</h3>
     </div>
 
     <!-- Flash messages -->
@@ -42,18 +40,18 @@
 
       <!-- Mode toggler -->
       <div class="toggle-btns d-flex mb-3">
-        <button type="button" class="btn btn-outline-primary active" onclick="toggleMode('password')">🔐 Password</button>
-        <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP</button>
+        <button type="button" class="btn btn-outline-light me-2 active" onclick="toggleMode('password')">🔐 Password</button>
+        <button type="button" class="btn btn-outline-light" onclick="toggleMode('otp')">📲 OTP</button>
       </div>
 
       <!-- Password Login Fields -->
       <div id="passwordFields">
         <div class="mb-3">
-          {{ form.username.label(class="form-label") }}
+          {{ form.username.label(class="form-label text-white") }}
           {{ form.username(class="form-control", placeholder="Enter your username") }}
         </div>
         <div class="mb-3">
-          {{ form.password.label(class="form-label") }}
+          {{ form.password.label(class="form-label text-white") }}
           {{ form.password(class="form-control", placeholder="Enter your password") }}
         </div>
       </div>
@@ -61,11 +59,11 @@
       <!-- OTP Login Fields -->
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
-          <label for="countryCode" class="form-label">🌍 Country Code</label>
+          <label for="countryCode" class="form-label text-white">🌍 Country Code</label>
           <input type="text" id="countryCode" class="form-control" placeholder="+91" value="+91">
         </div>
         <div class="mb-3">
-          <label for="phone" class="form-label">📞 Phone Number</label>
+          <label for="phone" class="form-label text-white">📞 Phone Number</label>
           <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
         </div>
         <div class="mb-3 d-flex">
@@ -77,7 +75,7 @@
       <!-- Remember Me -->
       <div class="form-check mb-3">
         {{ form.remember(class="form-check-input", id="rememberMe") }}
-        <label class="form-check-label" for="rememberMe">Remember Me</label>
+        <label class="form-check-label text-white" for="rememberMe">Remember Me</label>
       </div>
 
       <!-- Submit Button -->
@@ -86,10 +84,10 @@
 
     <!-- Links -->
     <div class="mt-3 d-flex justify-content-between">
-      <a href="{{ url_for('register') }}" class="text-decoration-none">
+      <a href="{{ url_for('register') }}" class="text-white text-decoration-none">
         <i class="bi bi-person-plus-fill"></i> Sign up
       </a>
-      <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">
+      <a href="{{ url_for('forgot_password') }}" class="text-white text-decoration-none">
         <i class="bi bi-question-circle"></i> Forgot Password?
       </a>
     </div>
@@ -97,7 +95,7 @@
 </div>
 
 <!-- Meta tag for CSRF -->
-<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="csrf-token" content="{{ csrf_token }}">
 
 <!-- Scripts -->
 <script>

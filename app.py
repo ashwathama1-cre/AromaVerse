@@ -59,9 +59,6 @@ logging.basicConfig(
     level=logging.ERROR,
     format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 )
-send_email(contact, "🔐 Your OTP", f"Your AromaVerse OTP is: {otp}")
-send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
-
 
 # ------------------ MODELS ------------------
 
@@ -143,8 +140,7 @@ def get_current_user():
         id = 1
     return DummyUser()
 
-def send_email(to, message):
-    print(f"[EMAIL TO: {to}] {message}")
+
 
 def insert_fake_data():
     try:
@@ -182,7 +178,12 @@ def insert_fake_data():
         logging.error(f"Error inserting fake data: {str(e)}")
 
 
+# ✅ Add this function somewhere after your imports
+def send_email(to, subject, body):
+    print(f"--- Email Sent ---\nTo: {to}\nSubject: {subject}\n\n{body}")
 
+def send_sms(number, message):
+    print(f"--- SMS Sent ---\nTo: {number}\nMessage: {message}")
 
 
 @app.before_request
@@ -628,7 +629,7 @@ def send_email(to, subject, body):
 
 #>>>>>>>>>send otp
 @app.route('/send_otp_phone', methods=['POST'])
-@csrf.exempt  # Optional: only if using CSRF and this is an API endpoint
+@csrf.exempt  # Only if this is used in public API (optional)
 def send_otp_phone():
     try:
         data = request.get_json()
@@ -642,13 +643,21 @@ def send_otp_phone():
         otp = str(random.randint(100000, 999999))
         expiry_time = datetime.now() + timedelta(minutes=2)
 
+        # 🟢 Email OTP
         if method == "email":
             send_email(contact, "🔐 Your OTP", f"Your AromaVerse OTP is: {otp}")
+
+        # 📱 Phone OTP
         elif method == "phone":
             phone_number = f"{country_code}{contact}"
-            send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
+            success = send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
+            if not success:
+                return jsonify({"message": "Failed to send SMS."}), 500
+
         else:
             return jsonify({"message": "Invalid method. Use 'email' or 'phone'."}), 400
+
+        # 🧠 Store OTP and expiry in session
         session["otp_contact"] = contact
         session["otp_method"] = method
         session["otp"] = otp
@@ -657,28 +666,53 @@ def send_otp_phone():
         return jsonify({"message": f"OTP sent via {method}."}), 200
 
     except Exception as e:
-        print(f"[ERROR] OTP sending failed: {e}")
+        logging.error(f"[ERROR] OTP sending failed: {e}")
         return jsonify({"message": "Internal server error."}), 500
-#>>>>>>>________)__---------send sms
+
 
 import requests
 
 
+
+
 def send_sms(phone_number, message):
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    payload = {
-        "authorization": os.getenv("FAST2SMS_API_KEY"),
-        "route": "q",
-        "message": message,
-        "language": "english",
-        "flash": 0,
-        "numbers": phone_number
-    }
-    headers = {
-        'cache-control': "no-cache"
-    }
-    response = requests.post(url, data=payload, headers=headers)
-    print(response.text)
+    try:
+        api_key = os.getenv("FAST2SMS_API_KEY")
+        if not api_key:
+            logging.error("Fast2SMS API key not set in environment variables.")
+            return False
+
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        payload = {
+            "authorization": api_key,
+            "route": "q",
+            "message": message,
+            "language": "english",
+            "flash": 0,
+            "numbers": phone_number
+        }
+        headers = {
+            'cache-control': "no-cache"
+        }
+
+        response = requests.post(url, data=payload, headers=headers)
+
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("return") == True:
+                print(f"✅ SMS sent successfully to {phone_number}")
+                return True
+            else:
+                logging.error(f"❌ SMS failed: {result}")
+                return False
+        else:
+            logging.error(f"❌ HTTP Error {response.status_code}: {response.text}")
+            return False
+
+    except Exception as e:
+        logging.error(f"Exception while sending SMS to {phone_number}: {str(e)}")
+        return False
+
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>

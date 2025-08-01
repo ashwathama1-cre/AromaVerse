@@ -433,6 +433,7 @@ def login():
         if user and check_password_hash(user.password, password):
             session['username'] = username
             session['role'] = user.role
+            session['user_id'] = user.id  # ✅ Add this line
             session.permanent = True
 
             if user.role == 'admin':
@@ -445,6 +446,7 @@ def login():
             flash('Invalid credentials', 'danger')
             return redirect(url_for('login'))
     return render_template('login.html')
+
 
 
 @app.route('/logout')

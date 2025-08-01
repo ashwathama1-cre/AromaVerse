@@ -119,8 +119,10 @@ class Purchase(db.Model):
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
+    remember = BooleanField('Remember Me')  # ✅ Add this line
 
+    submit = SubmitField('Login')
+  
 # ------------------ Utility Functions ------------------
 
 def allowed_file(filename):

@@ -3,7 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 
 
-from forms import LoginForm
+from forms import LoginForm, RegisterForm, ProductForm, ComplaintForm, SearchForm
+
 
 from flask import jsonify
 
@@ -1575,3 +1576,4 @@ def page_not_found(e):
 # ----------------- Main App Entry -----------------
 if __name__ == '__main__':
     app.run(debug=True)
+

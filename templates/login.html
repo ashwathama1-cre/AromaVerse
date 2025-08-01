@@ -32,7 +32,7 @@
     {% endwith %}
 
     <form method="POST" action="{{ url_for('login') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="mode" id="loginMode" value="password">
 
       <div class="toggle-btns d-flex mb-3">
@@ -44,11 +44,11 @@
       <div id="passwordFields">
         <div class="mb-3">
           <label class="form-label">👤 Username</label>
-          <input type="text" name="username" class="form-control" placeholder="Enter your username">
+          <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
         </div>
         <div class="mb-3">
           <label class="form-label">🔒 Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Enter your password">
+          <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
         </div>
       </div>
 
@@ -105,7 +105,7 @@
   function getCookie(name) {
     const cookies = document.cookie.split(';').map(c => c.trim());
     for (let c of cookies) {
-      if (c.startsWith(name + '=')) return c.split('=')[1];
+      if (c.startsWith(name + '=')) return decodeURIComponent(c.split('=')[1]);
     }
     return null;
   }
@@ -119,7 +119,7 @@
       return;
     }
 
-    fetch("/send_otp_phone", {
+    fetch("{{ url_for('send_otp_phone') }}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

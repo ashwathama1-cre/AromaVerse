@@ -12,7 +12,9 @@ from flask_wtf import CSRFProtect
 import smtplib
 from email.message import EmailMessage
 
-
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired
 
 
 from functools import wraps
@@ -24,6 +26,7 @@ import random
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
 
 
 # ------------------ Load Environment Variables ------------------
@@ -46,7 +49,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False
 app.permanent_session_lifetime = timedelta(minutes=30)
-
+app.config['SECRET_KEY'] = 'adarshg311' 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -113,6 +116,10 @@ class Purchase(db.Model):
     seller_id = db.Column(db.Integer)  # To identify seller
     address = db.Column(db.String(300))  # Optional, for shipping info
 
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Login')
 
 # ------------------ Utility Functions ------------------
 

@@ -52,6 +52,7 @@ db = SQLAlchemy(app)
 
 csrf = CSRFProtect(app)
 
+
 LOG_FILE = 'logs/error.log'
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 logging.basicConfig(
@@ -262,7 +263,6 @@ def trigger_insertion():
     return "✅ Sample attars inserted."
 
 
-
 # insert 
 import uuid
 
@@ -412,6 +412,11 @@ with app.app_context():
 # ------------------ Routes ------------------
 
 
+#>>>>>>crf 
+
+@app.context_processor
+def inject_csrf_token():
+    return dict(csrf_token=generate_csrf())
 
 
 @app.route('/')

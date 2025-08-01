@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash,abort
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
-from flask_wtf.csrf import generate_csrf
+
 
 
 from flask import jsonify
@@ -425,9 +425,12 @@ with app.app_context():
 
 #>>>>>>crf 
 
+# Generate CSRF token and inject into templates
+from flask_wtf.csrf import generate_csrf
+
 @app.context_processor
 def inject_csrf_token():
-    return dict(csrf_token=generate_csrf)
+    return dict(csrf_token=generate_csrf())
 
 
 
@@ -464,30 +467,39 @@ def home():
 from flask_wtf.csrf import generate_csrf
 
 @app.route('/login', methods=['GET', 'POST'])
-
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        username = form.username.data.strip()
-        password = form.password.data
+    if request.method == 'POST':
+        csrf_token = request.form.get('csrf_token')
+        if not csrf_token or csrf_token != session.get('_csrf_token'):
+            flash("Invalid CSRF token.", "danger")
+            return redirect(url_for('login'))
+
+        username = request.form.get('username').strip()
+        password = request.form.get('password')
+
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
             session['username'] = user.username
             session['role'] = user.role
+            session.permanent = True
+
+            flash(f"Welcome, {user.role.capitalize()}!", "success")
 
             if user.role == 'admin':
                 return redirect(url_for('admin_dashboard'))
-            elif user.role == 'buyer':
-                return redirect(url_for('buyer_dashboard'))
             elif user.role == 'seller':
                 return redirect(url_for('seller_dashboard'))
+            elif user.role == 'buyer':
+                return redirect(url_for('buyer_dashboard'))
             else:
-                flash("Unknown role.", "danger")
+                flash("Unknown role detected.", "warning")
                 return redirect(url_for('login'))
         else:
             flash("Invalid username or password.", "danger")
-    return render_template('login.html', form=form)
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
 
 
 @app.route('/logout')

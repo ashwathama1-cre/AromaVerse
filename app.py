@@ -178,6 +178,25 @@ def insert_fake_data():
     except Exception as e:
         logging.error(f"Error inserting fake data: {str(e)}")
 
+
+
+
+
+@app.before_request
+def csrf_protect():
+    if request.method == "POST":
+        token = session.pop('_csrf_token', None)
+        if not token or token != request.form.get('_csrf_token'):
+            abort(400)
+
+def generate_csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = str(uuid.uuid4())
+    return session['_csrf_token']
+
+app.jinja_env.globals['csrf_token'] = generate_csrf_token
+
+
 # ------------------ App Context Init ------------------
 # ------------------ Routes ------------------
 

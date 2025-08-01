@@ -427,7 +427,7 @@ with app.app_context():
 
 @app.context_processor
 def inject_csrf_token():
-    return dict(csrf_token=generate_csrf())
+    return dict(csrf_token=generate_csrf)
 
 
 

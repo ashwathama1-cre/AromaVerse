@@ -410,26 +410,26 @@ with app.app_context():
 
 
 # ------------------ Routes ------------------
-@app.route('/send_otp', methods=['GET', 'POST'])
+import random
+
+@app.route('/send_otp', methods=['POST'])
 def send_otp():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        if not email:
-            flash("Please enter a valid email.")
-            return redirect(url_for('send_otp'))
+    phone = request.form['phone'].strip()
+    user = User.query.filter_by(phone=phone).first()
 
-        # Generate OTP and store in session
-        otp = str(uuid.uuid4())[:6]  # 6-char OTP
-        session['otp'] = otp
-        session['email'] = email
+    if user:
+        otp = str(random.randint(100000, 999999))
+        user.otp = otp
+        db.session.commit()
 
-        # OPTIONAL: Send email here (SMTP or Flask-Mail)
-        # send_email(email, otp)
+        # Send the OTP using an SMS API (e.g., Twilio, Fast2SMS)
+        send_sms(phone, f"Your AromaVerse OTP is: {otp}")
 
-        flash("OTP has been sent to your email.")
-        return redirect(url_for('verify_otp'))
+        flash("OTP sent to your phone number.", "success")
+    else:
+        flash("Phone number not registered.", "danger")
 
-    return render_template('send_otp.html')
+    return redirect(url_for('login'))
 
 
 #>>>>>>crf 
@@ -712,29 +712,25 @@ def send_otp_phone():
         return jsonify({"status": "error", "message": "Internal server error."}), 500
 
 
-import requests
-
-
-
-
 def send_sms(phone_number, message):
     try:
         api_key = os.getenv("FAST2SMS_API_KEY")
         if not api_key:
-            logging.error("Fast2SMS API key not set in environment variables.")
+            logging.error("❌ Fast2SMS API key not set in environment variables.")
             return False
 
         url = "https://www.fast2sms.com/dev/bulkV2"
+
         payload = {
-            "authorization": api_key,
-            "route": "q",
-            "message": message,
-            "language": "english",
-            "flash": 0,
-            "numbers": phone_number
+            "route": "otp",              # Use 'otp' route for OTP messages
+            "variables_values": message, # OTP or message value
+            "numbers": phone_number      # Mobile number(s) as string
         }
+
         headers = {
-            'cache-control': "no-cache"
+            'authorization': api_key,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'cache-control': 'no-cache'
         }
 
         response = requests.post(url, data=payload, headers=headers)
@@ -742,19 +738,18 @@ def send_sms(phone_number, message):
         if response.status_code == 200:
             result = response.json()
             if result.get("return") == True:
-                print(f"✅ SMS sent successfully to {phone_number}")
+                logging.info(f"✅ SMS sent successfully to {phone_number}")
                 return True
             else:
-                logging.error(f"❌ SMS failed: {result}")
+                logging.error(f"❌ SMS sending failed: {result}")
                 return False
         else:
             logging.error(f"❌ HTTP Error {response.status_code}: {response.text}")
             return False
 
     except Exception as e:
-        logging.error(f"Exception while sending SMS to {phone_number}: {str(e)}")
+        logging.exception(f"❌ Exception while sending SMS to {phone_number}: {e}")
         return False
-
 
 
 #>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>

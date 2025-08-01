@@ -9,6 +9,8 @@ from werkzeug.utils import secure_filename
 from flask_wtf import CSRFProtect
 # In your main file or Flask shell
 
+import smtplib
+from email.message import EmailMessage
 
 
 
@@ -62,6 +64,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
 )
 
+otp_storage = {}
 # ------------------ MODELS ------------------
 
 class User(db.Model):
@@ -69,6 +72,8 @@ class User(db.Model):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(15), unique=True, nullable=True)
+
     email = db.Column(db.String(120), unique=True)  # ✅ Add this line
 
 class Product(db.Model):
@@ -87,17 +92,15 @@ class Product(db.Model):
 
 
 
-
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     buyer_username = db.Column(db.String(80), db.ForeignKey('user.username'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)  # ✅ Make sure it's Integer
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     quantity = db.Column(db.Integer, default=1)
+
+    # Keep this one only
     product = db.relationship('Product', backref='cart_items', lazy=True)
 
-
-    # Relationship
-    product = db.relationship('Product', backref='cart_items', lazy=True)
 
 
 class Purchase(db.Model):
@@ -153,7 +156,6 @@ def insert_fake_data():
 
             if not Product.query.first():
                 p1 = Product(
-                    id=str(uuid.uuid4()),
                     name='Rose Itra',
                     type='Rose',
                     quantity=100,
@@ -164,7 +166,6 @@ def insert_fake_data():
                     description='Classic rose fragrance.'
                 )
                 p2 = Product(
-                    id=str(uuid.uuid4()),
                     name='Musk Itra',
                     type='Musk',
                     quantity=80,
@@ -266,17 +267,12 @@ def trigger_insertion():
 
 # insert 
 import uuid
-
 def insert_attar_products():
-   
-
-    # Ensure a default seller exists
     seller = User.query.filter_by(username="admin_seller").first()
     if not seller:
-        seller = User(username="admin_seller", email="admin@attar.com", role="seller", password="1234")
+        seller = User(username="admin_seller", email="admin@attar.com", role="seller", password=generate_password_hash("1234"))
         db.session.add(seller)
         db.session.commit()
-
     # Sample attars
     attars = [
         {
@@ -361,26 +357,21 @@ def insert_attar_products():
         }
     ]
 
-    for a in attars:
-     
-     if not Product.query.filter_by(name=a['name']).first():
-      
-      new_product = Product(
-      name=a['name'],
-      type=a['type'],
-      price=a['price'],
-      quantity=a['quantity'],
-      unit='ml',
-      image=a['image'],
-      description=a['description'],
-      seller_id=seller.id
-                         )
-
-    db.session.add(new_product)
-
+      for a in attars:
+        if not Product.query.filter_by(name=a['name']).first():
+            new_product = Product(
+                name=a['name'],
+                type=a['type'],
+                price=a['price'],
+                quantity=a['quantity'],
+                unit='ml',
+                image=a['image'],
+                description=a['description'],
+                seller_id=seller.id
+            )
+            db.session.add(new_product)
     db.session.commit()
     print("✅ Sample attar products inserted.")
-
 
 # ------------------ Insert Sample Products ------------------
 
@@ -411,26 +402,7 @@ with app.app_context():
 
 
 # ------------------ Routes ------------------
-import random
 
-@app.route('/send_otp', methods=['POST'])
-def send_otp():
-    phone = request.form['phone'].strip()
-    user = User.query.filter_by(phone=phone).first()
-
-    if user:
-        otp = str(random.randint(100000, 999999))
-        user.otp = otp
-        db.session.commit()
-
-        # Send the OTP using an SMS API (e.g., Twilio, Fast2SMS)
-        send_sms(phone, f"Your AromaVerse OTP is: {otp}")
-
-        flash("OTP sent to your phone number.", "success")
-    else:
-        flash("Phone number not registered.", "danger")
-
-    return redirect(url_for('login'))
 
 
 #>>>>>>crf 
@@ -439,12 +411,6 @@ def send_otp():
 def inject_csrf_token():
     return dict(csrf_token=generate_csrf())
 
-
-@app.route('/')
-def index():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
 
 
 
@@ -473,7 +439,9 @@ otp_storage = {}
 
 @app.route('/')
 def home():
-    return redirect('/login')
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    return redirect(url_for('dashboard'))
 
 from flask_wtf.csrf import generate_csrf
 
@@ -627,12 +595,9 @@ def forgot_password():
 
 #>>>>>>>>>>>>>>>>>>>>>>>>
 
-def send_email(to, subject, message):
-    logging.info(f"[MOCK EMAIL] To: {to}, Subject: {subject}, Message: {message}")
-    # Real email sending code will go here in production
 
-def send_sms(phone_number, message):
-    logging.info(f"[MOCK SMS] To: {phone_number}, Message: {message}")
+
+
     # Real SMS sending code will go here in production
 
 #>>>>.otp to email
@@ -656,7 +621,7 @@ def send_email(to, subject, body):
 
 #>>>>>>>>>send otp
 @app.route('/send_otp_phone', methods=['POST'])
-@csrf.exempt  # Use only if endpoint accessed via public frontend (AJAX). Remove if you're using CSRF token securely.
+@csrf.exempt  # Keep only if frontend doesn't pass CSRF token
 def send_otp_phone():
     try:
         if not request.is_json:
@@ -670,23 +635,18 @@ def send_otp_phone():
         if not method or not contact:
             return jsonify({"status": "error", "message": "Both method and contact are required."}), 400
 
-        # OTP generation: 6-digit numeric
-        otp = f"{random.randint(100000, 999999)}"
+        otp = generate_otp()
         expiry_time = datetime.utcnow() + timedelta(minutes=2)
 
         if method == "email":
-            # ✅ Basic email validation
             if not re.match(r"[^@]+@[^@]+\.[^@]+", contact):
                 return jsonify({"status": "error", "message": "Invalid email address."}), 400
-
             send_email(contact, "🔐 AromaVerse OTP", f"Your OTP is: {otp}")
             delivery_status = "sent via email"
 
         elif method == "phone":
-            # ✅ Phone number validation (digits only)
             if not contact.isdigit() or not country_code.startswith('+'):
                 return jsonify({"status": "error", "message": "Invalid phone or country code."}), 400
-
             full_phone = f"{country_code}{contact}"
             if not send_sms(full_phone, f"🔐 Your AromaVerse OTP is: {otp}"):
                 return jsonify({"status": "error", "message": "SMS sending failed."}), 500
@@ -695,22 +655,69 @@ def send_otp_phone():
         else:
             return jsonify({"status": "error", "message": "Invalid method. Use 'email' or 'phone'."}), 400
 
-        # 🔐 Save OTP to session
         session["otp"] = otp
         session["otp_contact"] = contact
         session["otp_method"] = method
         session["otp_expires"] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
 
-        logging.info(f"[OTP] {method.upper()} OTP sent to {contact} | Expires at: {session['otp_expires']}")
         return jsonify({
             "status": "success",
-            "message": f"OTP successfully {delivery_status}.",
-            "expires_in": 120  # seconds
+            "message": f"OTP {delivery_status}.",
+            "expires_in": 120
         }), 200
 
     except Exception as e:
         logging.error(f"[ERROR] OTP sending failed: {str(e)}")
         return jsonify({"status": "error", "message": "Internal server error."}), 500
+
+
+#____----------send otp--------
+import random
+import requests
+
+@app.route("/send_otp", methods=["POST"])
+def send_otp():
+    contact = request.form.get("contact")
+    method = request.form.get("method")  # e.g., "sms"
+
+    if not contact or not method:
+        return jsonify({"message": "Missing phone number or method."}), 400
+
+    # ⏱️ Rate limiting: prevent spamming
+    last_otp_time = session.get("otp_time")
+    if last_otp_time:
+        # Convert string back to datetime
+        last_time = datetime.strptime(last_otp_time, "%Y-%m-%d %H:%M:%S")
+        if datetime.utcnow() - last_time < timedelta(seconds=60):
+            return jsonify({"message": "⏳ Please wait before requesting another OTP."}), 429
+
+    # 🔢 Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+
+    # 📤 Send OTP using Fast2SMS
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    payload = {
+        "variables_values": otp,
+        "route": "otp",
+        "numbers": contact
+    }
+    headers = {
+        'authorization': 'YOUR_FAST2SMS_API_KEY',  # Replace this with your real key
+        'Content-Type': "application/x-www-form-urlencoded"
+    }
+
+    response = requests.post(url, data=payload, headers=headers)
+
+    if response.status_code == 200:
+        # ✅ Save OTP and time in session
+        session["otp"] = otp
+        session["otp_contact"] = contact
+        session["otp_time"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        return jsonify({"message": "OTP sent successfully!"}), 200
+    else:
+        return jsonify({"message": "Failed to send OTP."}), 500
+
+
 
 
 def send_sms(phone_number, message):
@@ -723,11 +730,12 @@ def send_sms(phone_number, message):
         url = "https://www.fast2sms.com/dev/bulkV2"
 
         payload = {
-            "route": "otp",              # Use 'otp' route for OTP messages
-            "variables_values": message, # OTP or message value
-            "numbers": phone_number      # Mobile number(s) as string
-        }
-
+               "route": "q",  # for quick message
+               "message": message,
+               "language": "english",
+               "numbers": phone_number
+                         }
+  
         headers = {
             'authorization': api_key,
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -787,7 +795,7 @@ def send_otp_generic():
         # Store OTP and contact in session
         session["otp"] = otp
         session["otp_contact"] = contact
-
+        session["otp_expiry"] = datetime.utcnow() + timedelta(minutes=5)  # OTP expires in 5 min
         logging.debug(f"OTP {otp} stored in session for contact: {contact}")
         return jsonify({"message": "OTP sent successfully"})
 
@@ -852,6 +860,7 @@ def add_user():
     return render_template('add_user.html')
 
 
+# BUY NOW route (single purchase)
 @app.route('/buy/<int:product_id>')
 @login_required
 @role_required('buyer')
@@ -860,9 +869,9 @@ def buy_product(product_id):
 
     if product.quantity <= 0:
         flash("❌ Sorry, this product is out of stock.", "danger")
-        return redirect('/buyer_dashboard')
+        return redirect(url_for('buyer_dashboard'))
 
-    # Update product quantity and sold count
+    # Decrement quantity and increment sold count
     product.quantity -= 1
     product.sold += 1
 
@@ -871,7 +880,7 @@ def buy_product(product_id):
     if seller:
         seller.revenue = (seller.revenue or 0) + product.price
 
-    # Record purchase
+    # Save the purchase
     purchase = Purchase(
         buyer_username=session['username'],
         product_id=product.id,
@@ -883,9 +892,10 @@ def buy_product(product_id):
     db.session.commit()
 
     flash("✅ Product purchased successfully!", "success")
-    return redirect('/buyer_dashboard')
+    return redirect(url_for('buyer_dashboard'))
 
 
+# Update quantity in cart (increase/decrease)
 @app.route('/update_quantity/<int:product_id>', methods=['POST'])
 @login_required
 @role_required('buyer')
@@ -893,17 +903,19 @@ def update_quantity(product_id):
     action = request.form.get('action')
     cart = session.get('cart', {})
 
-    if str(product_id) in cart:
+    str_id = str(product_id)
+    if str_id in cart:
         if action == 'increase':
-            cart[str(product_id)]['quantity'] += 1
-        elif action == 'decrease' and cart[str(product_id)]['quantity'] > 1:
-            cart[str(product_id)]['quantity'] -= 1
+            cart[str_id]['quantity'] += 1
+        elif action == 'decrease' and cart[str_id]['quantity'] > 1:
+            cart[str_id]['quantity'] -= 1
 
     session['cart'] = cart
     flash("🛒 Cart updated!", "success")
-    return redirect('/cart')
+    return redirect(url_for('cart'))
 
 
+# Checkout entire cart
 @app.route('/checkout', methods=['POST'])
 @login_required
 @role_required('buyer')
@@ -911,20 +923,22 @@ def checkout():
     cart = session.get('cart', {})
     if not cart:
         flash("⚠️ Your cart is empty.", "warning")
-        return redirect('/cart')
+        return redirect(url_for('cart'))
 
     buyer_username = session['username']
 
     for item in cart.values():
         product = Product.query.get(item['id'])
+
+        # Extra check to avoid overselling
         if not product or product.quantity < item['quantity']:
             flash(f"❌ Not enough stock for {item['name']}.", "danger")
-            return redirect('/cart')
+            return redirect(url_for('cart'))
 
         product.quantity -= item['quantity']
         product.sold += item['quantity']
 
-        # Add to Purchase table
+        # Log each unit sold separately
         for _ in range(item['quantity']):
             purchase = Purchase(
                 buyer_username=buyer_username,
@@ -941,28 +955,34 @@ def checkout():
             seller.revenue = (seller.revenue or 0) + (product.price * item['quantity'])
 
     db.session.commit()
-    session['cart'] = {}
+    session['cart'] = {}  # Clear cart after purchase
     flash("✅ Purchase successful! Thank you.", "success")
-    return redirect('/buyer_dashboard')
+    return redirect(url_for('buyer_dashboard'))
 
 
+# Clear Cart
 @app.route('/clear_cart')
 @login_required
 @role_required('buyer')
 def clear_cart():
     session['cart'] = {}
     flash("🧹 Cart cleared successfully.", "info")
-    return redirect('/cart')
+    return redirect(url_for('cart'))
 
 
+# Buyer Profile: Purchase History
 @app.route('/buyer_profile')
 @login_required
 @role_required('buyer')
 def buyer_profile():
-    purchases = Purchase.query.filter_by(buyer_username=session['username']).order_by(Purchase.timestamp.desc()).all()
+    purchases = Purchase.query.filter_by(
+        buyer_username=session['username']
+    ).order_by(Purchase.timestamp.desc()).all()
+
     return render_template("buyer_profile.html", purchases=purchases)
 
 
+# Seller Dashboard
 @app.route("/seller_dashboard")
 @login_required
 @role_required('seller')
@@ -970,27 +990,26 @@ def seller_dashboard():
     seller_id = session['user_id']
     products = Product.query.filter_by(seller_id=seller_id).all()
 
-    notifications = []
-    for p in products:
-        if p.sold > 0:
-            notifications.append(f'Your product "{p.name}" was sold ({p.sold} units).')
+    # Optional notifications for sellers
+    notifications = [
+        f'🎉 Your product "{p.name}" was sold ({p.sold} units).'
+        for p in products if p.sold > 0
+    ]
 
     return render_template("seller_dashboard.html", products=products, notifications=notifications)
-#>>>>>>>>>>selller data 
 
-@app.route("/admin/seller_detail/<seller_id>")
+# ------------------ Seller Details for Admin ------------------
+@app.route("/admin/seller_detail/<int:seller_id>")
 @login_required
 @role_required('admin')
 def seller_detail(seller_id):
-    seller = User.query.get(seller_id)
-    if not seller:
-        return jsonify({"error": "Seller not found"}), 404
+    seller = User.query.get_or_404(seller_id)
 
-    total_products = Product.query.filter_by(seller_id=seller_id).count()
-    total_sold = db.session.query(db.func.sum(Product.quantity_sold)).filter_by(seller_id=seller_id).scalar() or 0
+    total_products = Product.query.filter_by(seller_id=seller.id).count()
+    total_sold = db.session.query(db.func.sum(Product.sold)).filter_by(seller_id=seller.id).scalar() or 0
     revenue = db.session.query(
-        db.func.sum(Product.quantity_sold * Product.price)
-    ).filter_by(seller_id=seller_id).scalar() or 0
+        db.func.sum(Product.price * Product.sold)
+    ).filter_by(seller_id=seller.id).scalar() or 0
 
     return jsonify({
         "name": seller.username,
@@ -1000,112 +1019,93 @@ def seller_detail(seller_id):
         "revenue": float(revenue)
     })
 
-    try:
-     
-     some_code_here()
-    except Exception as e:
-     
-     print(e)
 
-
-
-
-#####>>>>>>>>>>>>>>>>>>>manage seller
+# ------------------ Manage Sellers (Admin) ------------------
 @app.route("/seller_overview")
 @login_required
 @role_required('admin')
 def seller_overview():
-    sellers = Seller.query.all()
-    seller_counts = {}
-    seller_ids = {}
-    for s in sellers:
-        count = Product.query.filter_by(seller_id=s.id).count()
-        seller_counts[s.username] = count
-        seller_ids[s.username] = s.id
+    sellers = User.query.filter_by(role='seller').all()
+    seller_counts = {s.username: Product.query.filter_by(seller_id=s.id).count() for s in sellers}
+    seller_ids = {s.username: s.id for s in sellers}
+
     return render_template("manage_sellers.html", seller_counts=seller_counts, seller_ids=seller_ids)
 
 
-
-
-
-#>>>>>>>>>>>>>>promote buyer 
+# ------------------ Promote Buyer to Seller ------------------
 @app.route('/promote_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('admin')
 def promote_user(user_id):
-    user = User.query.get(user_id)
-    if user and user.role == 'buyer':
+    user = User.query.get_or_404(user_id)
+    if user.role == 'buyer':
         user.role = 'seller'
         db.session.commit()
         flash(f"✅ {user.username} is now a Seller!", "success")
     return redirect(url_for('manage_users'))
 
 
+# ------------------ Add Product (Alternate Route) ------------------
 @app.route('/add_product_alt', methods=['POST'])
+@login_required
 @role_required('seller')
 def add_product_alt():
     try:
-        name = request.form['name']
-        type = request.form['type']
-        price = float(request.form['price'])
-        quantity = int(request.form['quantity'])
-        unit = request.form['unit']
-        image = request.files['image']
-        description = request.form.get('description', "")
+        form = request.form
+        image = request.files.get('image')
 
-        # Save image securely
-        if image and allowed_file(image.filename):
-            filename = secure_filename(str(uuid.uuid4()) + "_" + image.filename)
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            image.save(image_path)
-        else:
-            flash("Invalid or missing image file", "danger")
-            return redirect('/seller_dashboard')
+        if not (image and allowed_file(image.filename)):
+            flash("❌ Invalid or missing image file.", "danger")
+            return redirect(url_for('seller_dashboard'))
+
+        filename = secure_filename(f"{uuid.uuid4()}_{image.filename}")
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image.save(image_path)
 
         seller = get_current_user()
         if not seller:
-            flash("Seller not found in session", "danger")
-            return redirect('/login')
+            flash("❌ Seller not found in session", "danger")
+            return redirect(url_for('login'))
 
         new_product = Product(
-            name=name,
-            type=type,
-            price=price,
-            quantity=quantity,
-            unit=unit,
+            name=form['name'],
+            type=form['type'],
+            price=float(form['price']),
+            quantity=int(form['quantity']),
+            unit=form['unit'],
             image=filename,
-            description=description,
+            description=form.get('description', ""),
             seller_id=seller.id
         )
         db.session.add(new_product)
         db.session.commit()
 
-        flash("✅ Product added successfully", "success")
-        return redirect('/seller_dashboard')
+        flash("✅ Product added successfully.", "success")
+        return redirect(url_for('seller_dashboard'))
 
     except Exception as e:
         print("Error in add_product:", e)
         flash("❌ Something went wrong while adding the product.", "danger")
-        return redirect('/seller_dashboard')
+        return redirect(url_for('seller_dashboard'))
 
-#>>>>>>>>>>>>>>>>>>>>>>>
+
+# ------------------ Image Extension Check ------------------
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-
-#---------------get selller detail----------------
-
+# ------------------ Seller Details (Extended) ------------------
 @app.route('/admin/seller/<int:seller_id>')
 @login_required
 @role_required('admin')
 def get_seller_detail(seller_id):
-    seller = Seller.query.get_or_404(seller_id)
+    seller = User.query.get_or_404(seller_id)
     product_count = Product.query.filter_by(seller_id=seller.id).count()
-    revenue = db.session.query(db.func.sum(Product.price * Product.sold_qty)).filter_by(seller_id=seller.id).scalar() or 0
+    revenue = db.session.query(
+        db.func.sum(Product.price * Product.sold)
+    ).filter_by(seller_id=seller.id).scalar() or 0
 
     return jsonify({
         "username": seller.username,
@@ -1114,21 +1114,18 @@ def get_seller_detail(seller_id):
         "address": seller.address,
         "photo": seller.photo,
         "products": product_count,
-        "revenue": revenue
+        "revenue": float(revenue)
     })
 
 
-# ------------------------- Delete Product -------------------------
-@app.route('/delete_product/<id>')
+# ------------------ Delete Product ------------------
+@app.route('/delete_product/<int:id>')
 @login_required
 @role_required('seller')
 def delete_product(id):
-    seller = User.query.filter_by(username=session['username']).first()
-    if not seller:
-        flash("❌ Seller not found", "danger")
-        return redirect('/seller_dashboard')
-
+    seller = get_current_user()
     product = Product.query.filter_by(id=id, seller_id=seller.id).first()
+
     if product:
         db.session.delete(product)
         db.session.commit()
@@ -1136,30 +1133,29 @@ def delete_product(id):
     else:
         flash("❌ Product not found or unauthorized access.", "danger")
 
-    return redirect('/seller_dashboard')
+    return redirect(url_for('seller_dashboard'))
 
-# ------------------------- Edit Product -------------------------
-@app.route('/edit_product/<id>', methods=['GET', 'POST'])
+
+# ------------------ Edit Product ------------------
+@app.route('/edit_product/<int:id>', methods=['GET', 'POST'])
 @login_required
 @role_required('seller')
 def edit_product(id):
-    seller = User.query.filter_by(username=session['username']).first()
-    if not seller:
-        flash("❌ Seller not found", "danger")
-        return redirect('/login')
-
+    seller = get_current_user()
     product = Product.query.filter_by(id=id, seller_id=seller.id).first()
+
     if not product:
-        flash("❌ Product not found or unauthorized", "danger")
-        return redirect('/seller_dashboard')
+        flash("❌ Product not found or unauthorized.", "danger")
+        return redirect(url_for('seller_dashboard'))
 
     if request.method == 'POST':
-        product.name = request.form['name']
-        product.price = float(request.form['price'])
-        product.quantity = int(request.form['quantity'])
-        product.type = request.form['type']
-        product.unit = request.form['unit']
-        product.description = request.form.get('description', product.description)
+        form = request.form
+        product.name = form['name']
+        product.price = float(form['price'])
+        product.quantity = int(form['quantity'])
+        product.type = form['type']
+        product.unit = form['unit']
+        product.description = form.get('description', product.description)
 
         image = request.files.get('image')
         if image and allowed_file(image.filename):
@@ -1170,20 +1166,19 @@ def edit_product(id):
 
         db.session.commit()
         flash("✅ Product updated!", "success")
-        return redirect('/seller_dashboard')
+        return redirect(url_for('seller_dashboard'))
 
     return render_template('edit_product.html', product=product)
 
 
-
-# filter product tpe
+# ------------------ Filter Products by Type ------------------
 def filter_products_by_type(products, scent_type):
     if not scent_type:
         return products
     return [p for p in products if p.scent_type.lower() == scent_type.lower()]
 
 
-# ------------------------- Buyer Dashboard -------------------------
+# ------------------ Buyer Dashboard ------------------
 @app.route('/buyer_dashboard')
 @login_required
 @role_required('buyer')
@@ -1191,18 +1186,15 @@ def buyer_dashboard():
     try:
         all_products = Product.query.all()
         scent_filter = request.args.get('filter')
-
-        if scent_filter:
-            filtered = [p for p in all_products if p.scent_type == scent_filter]
-        else:
-            filtered = all_products
+        filtered = filter_products_by_type(all_products, scent_filter) if scent_filter else all_products
 
         return render_template('buyer_dashboard.html', products=filtered, scent_filter=scent_filter)
     except Exception as e:
         print("Error in /buyer_dashboard:", e)
         return "Something went wrong in buyer dashboard", 500
 
-# ------------------------- Add to Cart -------------------------
+
+# ------------------ Add to Cart ------------------
 @app.route('/add_to_cart/<int:id>')
 @login_required
 @role_required('buyer')
@@ -1212,31 +1204,28 @@ def add_to_cart(id):
     try:
         product = Product.query.get_or_404(id)
 
-        # Check if product has stock
         if product.quantity <= 0:
             flash("⚠️ This product is out of stock.", "warning")
-            return redirect('/buyer_dashboard')
+            return redirect(url_for('buyer_dashboard'))
 
-        # Add or update cart item
-        existing_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
-        if existing_item:
-            if product.quantity >= existing_item.quantity + 1:
-                existing_item.quantity += 1
+        cart_item = CartItem.query.filter_by(buyer_username=username, product_id=id).first()
+        if cart_item:
+            if product.quantity >= cart_item.quantity + 1:
+                cart_item.quantity += 1
             else:
                 flash("⚠️ Not enough stock available.", "warning")
-                return redirect('/cart')
+                return redirect(url_for('cart'))
         else:
-            new_item = CartItem(buyer_username=username, product_id=id, quantity=1)
-            db.session.add(new_item)
+            db.session.add(CartItem(buyer_username=username, product_id=id, quantity=1))
 
         db.session.commit()
         flash(f"✅ {product.name} added to cart!", "success")
-        return redirect('/cart')
+        return redirect(url_for('cart'))
 
     except Exception as e:
         print("Add to Cart Error:", e)
         flash("❌ Failed to add product to cart.", "danger")
-        return redirect('/buyer_dashboard')
+        return redirect(url_for('buyer_dashboard'))
 
 
 # ------------------------- View Cart -------------------------

@@ -8,7 +8,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_wtf import CSRFProtect
 # In your main file or Flask shell
-from your_app import db
+from app import db
+
 
 
 

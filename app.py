@@ -518,7 +518,7 @@ def login():
             else:
                 flash("Invalid phone number or OTP", "danger")
 
-    return render_template("login.html")
+    return render_template("login.html",csrf_token=generate_csrf())
 
 @app.route('/logout')
 def logout():

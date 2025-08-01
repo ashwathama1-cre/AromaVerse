@@ -460,30 +460,35 @@ from flask_wtf.csrf import generate_csrf
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    form = LoginForm()
+    error = None
+
     if request.method == 'POST':
-        mode = request.form.get('mode')  # 'password' or 'otp'
+        mode = request.form.get('mode')  # Either 'password' or 'otp'
         remember = request.form.get('remember') == 'on'
 
         if mode == 'password':
-            username = request.form['username'].strip()
-            password = request.form['password']
-            user = User.query.filter_by(username=username).first()
+            if form.validate_on_submit():
+                username = form.username.data.strip()
+                password = form.password.data
+                user = User.query.filter_by(username=username).first()
 
-            if user and check_password_hash(user.password, password):
-                session['username'] = user.username
-                session['role'] = user.role
-                session.permanent = remember
-                user.last_login = datetime.now()
-                db.session.commit()
+                if user and check_password_hash(user.password, password):
+                    session['username'] = user.username
+                    session['role'] = user.role
+                    session.permanent = remember
+                    user.last_login = datetime.now()
+                    db.session.commit()
 
-                flash("Login successful", "success")
-                return redirect(url_for('admin_dashboard') if user.role == 'admin' else url_for('buyer_dashboard'))
-            else:
-                flash("Invalid username or password", "danger")
+                    flash("Login successful", "success")
+                    return redirect(url_for('admin_dashboard') if user.role == 'admin' else url_for('buyer_dashboard'))
+                else:
+                    error = "Invalid username or password"
+                    flash(error, "danger")
 
         elif mode == 'otp':
-            phone = request.form['phone'].strip()
-            otp = request.form['otp'].strip()
+            phone = request.form.get('phone', '').strip()
+            otp = request.form.get('otp', '').strip()
             user = User.query.filter_by(phone=phone).first()
 
             if user and user.otp == otp:
@@ -491,15 +496,16 @@ def login():
                 session['role'] = user.role
                 session.permanent = remember
                 user.last_login = datetime.now()
-                user.otp = None
+                user.otp = None  # Clear OTP after use
                 db.session.commit()
 
                 flash("OTP login successful", "success")
                 return redirect(url_for('admin_dashboard') if user.role == 'admin' else url_for('buyer_dashboard'))
             else:
-                flash("Invalid phone number or OTP", "danger")
+                error = "Invalid phone number or OTP"
+                flash(error, "danger")
 
-    return render_template("login.html",csrf_token=generate_csrf())
+    return render_template('login.html', form=form, error=error)
 
 @app.route('/logout')
 def logout():

@@ -34,7 +34,7 @@
 
     <form method="POST" action="/login">
       <!-- ✅ CSRF token properly added -->
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="mode" id="loginMode" value="password">
 
       <div class="toggle-btns d-flex mb-3">

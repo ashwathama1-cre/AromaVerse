@@ -53,3 +53,13 @@ class SearchForm(FlaskForm):
         ('other', 'Other')
     ])
     submit = SubmitField("Filter")
+
+
+from wtforms import BooleanField
+
+class LoginForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired(), Length(min=3, max=30)])
+    password = PasswordField("Password", validators=[DataRequired()])
+    remember = BooleanField("Remember Me")   # ✅ Add this line
+    submit = SubmitField("Login")
+

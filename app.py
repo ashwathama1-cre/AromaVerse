@@ -411,6 +411,9 @@ with app.app_context():
 
 # ------------------ Routes ------------------
 
+@app.route('/send_otp')
+def send_otp_page():
+    return render_template('send_otp.html')
 
 #>>>>>>crf 
 

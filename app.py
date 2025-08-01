@@ -267,8 +267,8 @@ def trigger_insertion():
 
 import uuid
 from werkzeug.security import generate_password_hash
-from your_app import db  # Replace with your actual app module name
-from your_app.models import User, Product  # Replace with your actual models if needed
+
+from app import User, Product  # Replace with your actual models if needed
 
 def insert_attar_products():
     seller = User.query.filter_by(username="admin_seller").first()

@@ -23,7 +23,6 @@
     </div>
     <h3 class="text-center mb-3">Login to AromaVerse</h3>
 
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -32,8 +31,8 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="/login">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <form method="POST" action="{{ url_for('login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="mode" id="loginMode" value="password">
 
       <div class="toggle-btns d-flex mb-3">
@@ -45,11 +44,11 @@
       <div id="passwordFields">
         <div class="mb-3">
           <label class="form-label">👤 Username</label>
-          <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
+          <input type="text" name="username" class="form-control" placeholder="Enter your username">
         </div>
         <div class="mb-3">
           <label class="form-label">🔒 Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+          <input type="password" name="password" class="form-control" placeholder="Enter your password">
         </div>
       </div>
 
@@ -57,7 +56,7 @@
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
           <label class="form-label">🌍 Country Code</label>
-          <input type="text" id="countryCode" class="form-control" placeholder="+91" required>
+          <input type="text" id="countryCode" class="form-control" placeholder="+91">
         </div>
         <div class="mb-3">
           <label class="form-label">📞 Phone Number</label>
@@ -96,13 +95,19 @@
 
     const buttons = document.querySelectorAll(".toggle-btns .btn");
     buttons.forEach(btn => btn.classList.remove("active"));
-    buttons[mode === 'password' ? 0 : 1].classList.add("active");
+    if (mode === 'password') {
+      buttons[0].classList.add("active");
+    } else {
+      buttons[1].classList.add("active");
+    }
   }
 
   function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
+    const cookies = document.cookie.split(';').map(c => c.trim());
+    for (let c of cookies) {
+      if (c.startsWith(name + '=')) return c.split('=')[1];
+    }
+    return null;
   }
 
   function sendOTP() {
@@ -127,8 +132,13 @@
       })
     })
     .then(response => response.json())
-    .then(data => alert(data.message || "OTP sent!"))
-    .catch(err => console.error(err));
+    .then(data => {
+      alert(data.message || "OTP sent!");
+    })
+    .catch(error => {
+      console.error("Error sending OTP:", error);
+      alert("Failed to send OTP.");
+    });
   }
 </script>
 {% endblock %}

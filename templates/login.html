@@ -34,7 +34,6 @@
 
     <!-- Login Form -->
     <form method="POST" action="{{ url_for('login') }}">
-      {{ form.csrf_token }}
       {{ form.hidden_tag() }}
       <input type="hidden" name="mode" id="loginMode" value="password">
 
@@ -59,11 +58,11 @@
       <!-- OTP Login Fields -->
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
-          <label class="form-label">🌍 Country Code</label>
-          <input type="text" id="countryCode" class="form-control" placeholder="+91">
+          <label for="countryCode" class="form-label">🌍 Country Code</label>
+          <input type="text" id="countryCode" class="form-control" placeholder="+91" value="+91">
         </div>
         <div class="mb-3">
-          <label class="form-label">📞 Phone Number</label>
+          <label for="phone" class="form-label">📞 Phone Number</label>
           <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
         </div>
         <div class="mb-3 d-flex">
@@ -93,6 +92,9 @@
     </div>
   </div>
 </div>
+
+<!-- Meta tag for CSRF -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <!-- Scripts -->
 <script>
@@ -145,5 +147,4 @@
     });
   }
 </script>
-
 {% endblock %}

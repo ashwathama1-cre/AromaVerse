@@ -445,12 +445,17 @@ otp_storage = {}
 def home():
     return redirect('/login')
 
+from flask_wtf.csrf import generate_csrf
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    prefill_username = request.args.get('prefill_username', '')  # default empty
+    error = None
+    prefill_username = request.args.get('prefill_username', '')  # safely handle empty case
+
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
@@ -459,6 +464,8 @@ def login():
             session['user_id'] = user.id
             session.permanent = True
 
+            flash('Login successful!', 'success')
+
             if user.role == 'admin':
                 return redirect(url_for('admin_dashboard'))
             elif user.role == 'seller':
@@ -466,10 +473,16 @@ def login():
             else:
                 return redirect(url_for('buyer_dashboard'))
         else:
-            flash('Invalid credentials', 'danger')
-            return redirect(url_for('login'))
-    
-    return render_template("login.html", error=None, csrf_token=generate_csrf(), prefill_username=prefill_username)
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('login', prefill_username=username))
+
+    return render_template(
+        "login.html",
+        error=error,
+        csrf_token=generate_csrf(),
+        prefill_username=prefill_username
+    )
+
 
 @app.route('/logout')
 def logout():

@@ -1,44 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Send OTP | AromaVerse{% endblock %}
+{% block title %}Verify OTP | AromaVerse{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
   <div class="card mx-auto shadow-lg" style="max-width: 500px;">
     <div class="card-body">
-      <h4 class="text-center mb-4">🔐 Send OTP</h4>
+      <h4 class="text-center mb-4">🔍 Verify OTP</h4>
 
-      <form id="otpForm">
+      <form id="verifyForm">
         <div class="mb-3">
-          <label class="form-label">Method</label>
-          <select class="form-select" id="method" required>
-            <option value="">-- Select Method --</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone</option>
-          </select>
-        </div>
-
-        <div id="emailInput" class="mb-3 d-none">
-          <label class="form-label">Email Address</label>
-          <input type="email" class="form-control" id="email" placeholder="user@example.com">
-        </div>
-
-        <div id="phoneInputs" class="d-none">
-          <div class="mb-3">
-            <label class="form-label">Country Code</label>
-            <input type="text" class="form-control" id="countryCode" placeholder="+91">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Phone Number</label>
-            <input type="text" class="form-control" id="phone" placeholder="9876543210">
-          </div>
+          <label class="form-label">Enter OTP</label>
+          <input type="text" class="form-control" id="otp" placeholder="Enter the OTP" required>
         </div>
 
         <div class="d-grid">
-          <button type="submit" class="btn btn-primary">📤 Send OTP</button>
+          <button type="submit" class="btn btn-success">✅ Verify</button>
         </div>
       </form>
 
-      <div id="otpResult" class="mt-4 text-center"></div>
+      <div id="verifyResult" class="mt-4 text-center"></div>
     </div>
   </div>
 </div>
@@ -46,48 +26,28 @@
 
 {% block scripts %}
 <script>
-document.getElementById("method").addEventListener("change", function () {
-  const method = this.value;
-  document.getElementById("emailInput").classList.toggle("d-none", method !== "email");
-  document.getElementById("phoneInputs").classList.toggle("d-none", method !== "phone");
-});
-
-document.getElementById("otpForm").addEventListener("submit", function (e) {
+document.getElementById("verifyForm").addEventListener("submit", function (e) {
   e.preventDefault();
 
-  const method = document.getElementById("method").value;
-  const email = document.getElementById("email").value.trim();
-  const countryCode = document.getElementById("countryCode").value.trim();
-  const phone = document.getElementById("phone").value.trim();
+  const otp = document.getElementById("otp").value.trim();
 
-  let payload = { method };
-
-  if (method === "email") {
-    payload.contact = email;
-  } else if (method === "phone") {
-    payload.contact = phone;
-    payload.country_code = countryCode;
-  } else {
-    return alert("Please select a valid method.");
-  }
-
-  fetch("/send_otp_phone", {
+  fetch("/verify_otp", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ otp }),
   })
     .then((res) => res.json())
     .then((data) => {
-      const output = document.getElementById("otpResult");
+      const resultDiv = document.getElementById("verifyResult");
       if (data.status === "success") {
-        output.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-        setTimeout(() => window.location.href = "/verify_otp", 1000);
+        resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+        setTimeout(() => window.location.href = "/", 1500);  // Redirect on success
       } else {
-        output.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
       }
     })
     .catch((err) => {
-      document.getElementById("otpResult").innerHTML = `<div class="alert alert-danger">Error sending OTP.</div>`;
+      document.getElementById("verifyResult").innerHTML = `<div class="alert alert-danger">Error verifying OTP.</div>`;
     });
 });
 </script>

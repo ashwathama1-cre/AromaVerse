@@ -686,22 +686,31 @@ def send_otp_generic():
 
 
 #>>>>>>>>resend otp
+# Store resend count in session (or DB for real-world apps)
 @app.route('/resend_otp', methods=['POST'])
 def resend_otp():
     email = session.get('otp_email')
     if not email:
         return jsonify({'status': 'error', 'message': 'Session expired'}), 400
 
+    resend_count = session.get('resend_count', 0)
+    if resend_count >= 3:
+        return jsonify({'status': 'error', 'message': 'Maximum resend attempts reached'}), 403
+
+    # Generate and store new OTP
     otp = str(uuid.uuid4().int)[-6:]
     otp_storage[email] = {
         'otp': otp,
         'expires': datetime.now() + timedelta(minutes=2)
     }
 
-    # Send OTP via email (implement your mail logic here)
+    # Send email (implement your logic here)
     send_email(email, f"Your new OTP is: {otp}")
 
+    # Increment count and refresh timer
+    session['resend_count'] = resend_count + 1
     return jsonify({'status': 'success'})
+
 
 
 

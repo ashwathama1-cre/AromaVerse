@@ -697,47 +697,42 @@ import requests
 
 @app.route("/send_otp", methods=["POST"])
 def send_otp():
-    contact = request.form.get("contact")
-    method = request.form.get("method")  # e.g., "sms"
+    try:
+        data = request.json
+        phone = data.get("phone")
 
-    if not contact or not method:
-        return jsonify({"message": "Missing phone number or method."}), 400
+        if not phone:
+            return jsonify({"status": "error", "message": "Phone number is required"}), 400
 
-    # ⏱️ Rate limiting: prevent spamming
-    last_otp_time = session.get("otp_time")
-    if last_otp_time:
-        # Convert string back to datetime
-        last_time = datetime.strptime(last_otp_time, "%Y-%m-%d %H:%M:%S")
-        if datetime.utcnow() - last_time < timedelta(seconds=60):
-            return jsonify({"message": "⏳ Please wait before requesting another OTP."}), 429
-
-    # 🔢 Generate 6-digit OTP
-    otp = str(random.randint(100000, 999999))
-
-    # 📤 Send OTP using Fast2SMS
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    payload = {
-        "variables_values": otp,
-        "route": "otp",
-        "numbers": contact
-    }
-    headers = {
-        'authorization': 'YOUR_FAST2SMS_API_KEY',  # Replace this with your real key
-        'Content-Type': "application/x-www-form-urlencoded"
-    }
-
-    response = requests.post(url, data=payload, headers=headers)
-
-    if response.status_code == 200:
-        # ✅ Save OTP and time in session
+        otp = str(random.randint(100000, 999999))
         session["otp"] = otp
-        session["otp_contact"] = contact
-        session["otp_time"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        return jsonify({"message": "OTP sent successfully!"}), 200
-    else:
-        return jsonify({"message": "Failed to send OTP."}), 500
+        session["otp_phone"] = phone
 
+        api_key = os.getenv("FAST2SMS_API_KEY")
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        payload = {
+            "route": "q",
+            "message": f"Your AromaVerse OTP is {otp}. Do not share it.",
+            "language": "english",
+            "numbers": phone
+        }
 
+        headers = {
+            'authorization': api_key,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'cache-control': 'no-cache'
+        }
+
+        response = requests.post(url, data=payload, headers=headers)
+
+        if response.status_code == 200 and response.json().get("return"):
+            return jsonify({"status": "success", "message": "OTP sent successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Failed to send OTP"}), 500
+
+    except Exception as e:
+        logging.exception("Error sending OTP")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 

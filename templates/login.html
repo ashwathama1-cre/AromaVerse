@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Login | Itra Store{% endblock %}
+{% block title %}Login | AromaVerse{% endblock %}
 
 {% block content %}
 <style>
@@ -7,10 +7,12 @@
     background: url("{{ url_for('static', filename='login-bg.jpg') }}") no-repeat center center fixed;
     background-size: cover;
   }
-
   .bg-overlay {
     background-color: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(4px);
+  }
+  .toggle-btns .btn {
+    width: 50%;
   }
 </style>
 
@@ -19,7 +21,7 @@
     <div class="login-icon text-center">
       <i class="bi bi-person-circle display-4 text-primary mb-3"></i>
     </div>
-    <h3 class="text-center mb-4">Login to AromaVerse</h3>
+    <h3 class="text-center mb-3">Login to AromaVerse</h3>
 
     <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,21 +32,42 @@
       {% endif %}
     {% endwith %}
 
-    {% if error %}
-      <div class="alert alert-danger text-center">{{ error }}</div>
-    {% endif %}
-
-    <form method="POST">
+    <form method="POST" id="loginForm">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="mode" id="loginMode" value="password">
 
-      <div class="mb-3">
-        <label class="form-label">👤 Username</label>
-        <input type="text" name="username" value="{{ prefill_username }}" required class="form-control" placeholder="Enter your username">
+      <div class="toggle-btns d-flex mb-3">
+        <button type="button" class="btn btn-outline-primary active" onclick="toggleMode('password')">🔐 Password Login</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP Login</button>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">🔒 Password</label>
-        <input type="password" name="password" required class="form-control" placeholder="Enter your password">
+      <!-- Password Login Fields -->
+      <div id="passwordFields">
+        <div class="mb-3">
+          <label class="form-label">👤 Username</label>
+          <input type="text" name="username" class="form-control" placeholder="Enter your username">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">🔒 Password</label>
+          <input type="password" name="password" class="form-control" placeholder="Enter your password">
+        </div>
+      </div>
+
+      <!-- OTP Login Fields -->
+      <div id="otpFields" style="display: none;">
+        <div class="mb-3">
+          <label class="form-label">📞 Phone</label>
+          <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
+        </div>
+        <div class="mb-3 d-flex">
+          <input type="text" name="otp" class="form-control me-2" placeholder="Enter OTP">
+          <button type="button" class="btn btn-outline-success" onclick="sendOTP()">📤 Send OTP</button>
+        </div>
+      </div>
+
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="remember" id="rememberMe">
+        <label class="form-check-label" for="rememberMe">Remember Me</label>
       </div>
 
       <button type="submit" class="btn btn-primary w-100">🔓 Login</button>
@@ -60,4 +83,32 @@
     </div>
   </div>
 </div>
+
+<script>
+  function toggleMode(mode) {
+    document.getElementById("loginMode").value = mode;
+    document.getElementById("passwordFields").style.display = mode === 'password' ? 'block' : 'none';
+    document.getElementById("otpFields").style.display = mode === 'otp' ? 'block' : 'none';
+
+    const buttons = document.querySelectorAll(".toggle-btns .btn");
+    buttons.forEach(btn => btn.classList.remove("active"));
+    buttons[mode === 'password' ? 0 : 1].classList.add("active");
+  }
+
+  function sendOTP() {
+    const phone = document.getElementById("phone").value;
+    if (!phone) {
+      alert("Please enter phone number first.");
+      return;
+    }
+    fetch("/send_otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phone })
+    })
+    .then(response => response.json())
+    .then(data => alert(data.message || "OTP sent!"))
+    .catch(err => console.error(err));
+  }
+</script>
 {% endblock %}

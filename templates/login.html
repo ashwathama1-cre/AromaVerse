@@ -7,11 +7,14 @@
     background: url("{{ url_for('static', filename='login-bg.jpg') }}") no-repeat center center fixed;
     background-size: cover;
   }
-  .bg-overlay {
-    background-color: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(4px);
+  .login-wrapper {
+          background-color: rgba(255, 255, 255, 0.2);  /* Less opaque */
+          backdrop-filter: blur(10px);                /* Glass effect */
+          border-radius: 20px;
+         padding: 30px;
   }
-  .toggle-btns .btn {
+            
+    {
     width: 50%;
   }
 </style>

@@ -517,29 +517,47 @@ def register():
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
-    email = session.get('otp_email')
-    otp_data = otp_storage.get(email)
+    contact = session.get("otp_contact")
+    method = session.get("otp_method")
+    otp = session.get("otp")
+    expiry_str = session.get("otp_expires")
 
-    if not otp_data:
-        flash("OTP session expired. Please request again.", "danger")
+    if not contact or not otp or not expiry_str:
+        flash("OTP session expired. Please try again.", "danger")
         return redirect('/')
 
-    time_left = (otp_data['expires'] - datetime.now()).total_seconds()
+    expiry_time = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S')
+    time_left = int((expiry_time - datetime.now()).total_seconds())
 
     if request.method == 'POST':
-        entered_otp = request.form.get('otp')
-        if datetime.now() > otp_data['expires']:
-            flash("⏰ OTP expired! Please request again.", "danger")
+        entered_otp = request.form.get('otp', '').strip()
+        if datetime.now() > expiry_time:
+            flash("⏰ OTP expired! Request again.", "danger")
             return redirect('/')
-        if entered_otp == otp_data['otp']:
-            flash("✅ OTP Verified!", "success")
-            del otp_storage[email]
-            return redirect('/dashboard')
+        if entered_otp == otp:
+            # ✅ OTP Verified: Now check if user exists or create new one
+            user = User.query.filter_by(username=contact).first()
+            if not user:
+                # Create new user (signup flow)
+                new_user = User(username=contact, password=generate_password_hash("1234"), role="buyer")
+                db.session.add(new_user)
+                db.session.commit()
+
+            session["username"] = contact
+            session["role"] = "buyer"  # Default role
+            flash("✅ OTP Verified. Logged in!", "success")
+
+            # Clean up session
+            for key in ["otp_contact", "otp_method", "otp", "otp_expires"]:
+                session.pop(key, None)
+
+            return redirect('/buyer_dashboard')
         else:
-            flash("❌ Incorrect OTP!", "danger")
+            flash("❌ Invalid OTP!", "danger")
             return redirect(url_for('verify_otp'))
 
-    return render_template("verify_otp.html", time_left=int(time_left))
+    return render_template("verify_otp.html", time_left=time_left)
+
 @app.route('/dashboard')
 def dashboard():
     email = session.get('email')
@@ -591,30 +609,38 @@ def send_sms(phone_number, message):
 
 #>>>>>>>>>send otp
 @app.route('/send_otp_phone', methods=['POST'])
+@csrf.exempt  # Optional: only if using CSRF and this is an API endpoint
 def send_otp_phone():
-    data = request.get_json()
-    method = data.get("method")
-    contact = data.get("contact")
-    country_code = data.get("country_code", "")
+    try:
+        data = request.get_json()
+        method = data.get("method")
+        contact = data.get("contact", "").strip()
+        country_code = data.get("country_code", "").strip()
 
-    otp = str(random.randint(100000, 999999))
-    expiry_time = datetime.now() + timedelta(minutes=2)
+        if not method or not contact:
+            return jsonify({"message": "Method and contact are required."}), 400
 
-    # Handle email or phone
-    if method == "email":
-        send_email(contact, "Your OTP", f"Your OTP is: {otp}")
-    elif method == "phone":
-        phone_number = country_code + contact
-        send_sms(phone_number, f"Your OTP is: {otp}")
-    else:
-        return jsonify({"message": "Invalid method"}), 400
+        otp = str(random.randint(100000, 999999))
+        expiry_time = datetime.now() + timedelta(minutes=2)
 
-    # Store OTP session
-    session["otp"] = otp
-    session["otp_contact"] = contact
-    session["otp_expires"] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
+        if method == "email":
+            send_email(contact, "🔐 Your OTP", f"Your AromaVerse OTP is: {otp}")
+        elif method == "phone":
+            phone_number = f"{country_code}{contact}"
+            send_sms(phone_number, f"🔐 Your AromaVerse OTP is: {otp}")
+        else:
+            return jsonify({"message": "Invalid method. Use 'email' or 'phone'."}), 400
+        session["otp_contact"] = contact
+        session["otp_method"] = method
+        session["otp"] = otp
+        session["otp_expires"] = expiry_time.strftime('%Y-%m-%d %H:%M:%S')
 
-    return jsonify({"message": f"OTP sent to {method}"}), 200
+        return jsonify({"message": f"OTP sent via {method}."}), 200
+
+    except Exception as e:
+        print(f"[ERROR] OTP sending failed: {e}")
+        return jsonify({"message": "Internal server error."}), 500
+
 
 #>>>>>>>>>>>>>>>>>>>>>>>send otp gern>>>>>
 @app.route('/send_otp', methods=['POST'])

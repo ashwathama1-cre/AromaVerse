@@ -8,7 +8,7 @@
     background-size: cover;
   }
   .bg-overlay {
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(4px);
   }
   .toggle-btns .btn {
@@ -17,12 +17,13 @@
 </style>
 
 <div class="d-flex align-items-center justify-content-center vh-100 bg-overlay">
-  <div class="login-card col-md-4 col-sm-10 bg-white shadow rounded-4 p-4">
-    <div class="login-icon text-center">
-      <i class="bi bi-person-circle display-4 text-primary mb-3"></i>
+  <div class="login-card col-md-5 col-sm-10 bg-white shadow rounded-4 p-4">
+    <div class="text-center mb-3">
+      <i class="bi bi-person-circle display-4 text-primary"></i>
+      <h3 class="mt-2">Login to AromaVerse</h3>
     </div>
-    <h3 class="text-center mb-3">Login to AromaVerse</h3>
 
+    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -31,25 +32,26 @@
       {% endif %}
     {% endwith %}
 
-   <form method="POST" action="{{ url_for('login') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-       <input type="hidden" name="mode" id="loginMode" value="password">
-   
-       <div class="toggle-btns d-flex mb-3">
-        <button type="button" class="btn btn-outline-primary active" onclick="toggleMode('password')">🔐 Password Login</button>
-       <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP Login</button>
-     </div>
+    <!-- Login Form -->
+    <form method="POST" action="{{ url_for('login') }}">
+      {{ form.hidden_tag() }}
+      <input type="hidden" name="mode" id="loginMode" value="password">
 
+      <!-- Mode toggler -->
+      <div class="toggle-btns d-flex mb-3">
+        <button type="button" class="btn btn-outline-primary active" onclick="toggleMode('password')">🔐 Password</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="toggleMode('otp')">📲 OTP</button>
+      </div>
 
       <!-- Password Login Fields -->
       <div id="passwordFields">
         <div class="mb-3">
-          <label class="form-label">👤 Username</label>
-          <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
+          {{ form.username.label(class="form-label") }}
+          {{ form.username(class="form-control", placeholder="Enter your username") }}
         </div>
         <div class="mb-3">
-          <label class="form-label">🔒 Password</label>
-          <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+          {{ form.password.label(class="form-label") }}
+          {{ form.password(class="form-control", placeholder="Enter your password") }}
         </div>
       </div>
 
@@ -57,26 +59,29 @@
       <div id="otpFields" style="display: none;">
         <div class="mb-3">
           <label class="form-label">🌍 Country Code</label>
-          <input type="text" id="countryCode" class="form-control" placeholder="+91">
+          <input type="text" id="countryCode" class="form-control" placeholder="+91" required>
         </div>
         <div class="mb-3">
           <label class="form-label">📞 Phone Number</label>
-          <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number">
+          <input type="text" name="phone" id="phone" class="form-control" placeholder="Enter phone number" required>
         </div>
         <div class="mb-3 d-flex">
-          <input type="text" name="otp" class="form-control me-2" placeholder="Enter OTP">
+          <input type="text" name="otp" class="form-control me-2" placeholder="Enter OTP" required>
           <button type="button" class="btn btn-outline-success" onclick="sendOTP()">📤 Send OTP</button>
         </div>
       </div>
 
+      <!-- Remember Me -->
       <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" name="remember" id="rememberMe">
+        {{ form.remember(class="form-check-input", id="rememberMe") }}
         <label class="form-check-label" for="rememberMe">Remember Me</label>
       </div>
 
+      <!-- Submit Button -->
       <button type="submit" class="btn btn-primary w-100">🔓 Login</button>
     </form>
 
+    <!-- Links -->
     <div class="mt-3 d-flex justify-content-between">
       <a href="{{ url_for('register') }}" class="text-decoration-none">
         <i class="bi bi-person-plus-fill"></i> Sign up
@@ -88,11 +93,12 @@
   </div>
 </div>
 
+<!-- Scripts -->
 <script>
   function toggleMode(mode) {
     document.getElementById("loginMode").value = mode;
-    document.getElementById("passwordFields").style.display = mode === 'password' ? 'block' : 'none';
-    document.getElementById("otpFields").style.display = mode === 'otp' ? 'block' : 'none';
+    document.getElementById("passwordFields").style.display = (mode === 'password') ? 'block' : 'none';
+    document.getElementById("otpFields").style.display = (mode === 'otp') ? 'block' : 'none';
 
     const buttons = document.querySelectorAll(".toggle-btns .btn");
     buttons.forEach(btn => btn.classList.remove("active"));

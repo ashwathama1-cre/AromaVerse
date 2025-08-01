@@ -1,21 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Verify OTP | Itra Store{% endblock %}
+
 {% block content %}
 <div class="container py-5">
   <div class="col-md-6 mx-auto bg-light p-4 rounded shadow">
-    <h4 class="mb-3">🔒 Enter the OTP</h4>
+    <h4 class="mb-3">🔒 OTP Verification</h4>
     <p class="text-muted">
-      This OTP is valid for <span id="countdown">{{ time_left }}</span>.
+      OTP sent to <strong>{{ session.get('otp_email')|replace('@', ' [at] ')|replace(session.get('otp_email')[1:-10], '*' * len(session.get('otp_email')[1:-10])) }}</strong><br>
+      Valid for <span id="countdown">{{ time_left }}</span>.
     </p>
 
     <form method="POST" id="otpForm">
       {{ csrf_token() }}
       <div class="mb-3">
-        <label for="otp">OTP</label>
+        <label for="otp">Enter OTP</label>
         <input type="text" name="otp" id="otp" class="form-control" required>
       </div>
       <button type="submit" id="submitBtn" class="btn btn-primary">✅ Verify OTP</button>
-      <button type="button" id="resendBtn" class="btn btn-warning mt-2" onclick="resendOTP()" disabled>🔁 Resend OTP</button>
+      <button type="button" id="resendBtn" class="btn btn-warning mt-2" onclick="resendOTP()" disabled>
+        🔁 Resend OTP <span id="spinner" class="spinner-border spinner-border-sm d-none"></span>
+      </button>
     </form>
   </div>
 </div>
@@ -25,13 +29,13 @@
   const countdownDisplay = document.getElementById("countdown");
   const submitBtn = document.getElementById("submitBtn");
   const resendBtn = document.getElementById("resendBtn");
+  const spinner = document.getElementById("spinner");
 
   let countdown = setInterval(() => {
     seconds--;
     let mins = Math.floor(seconds / 60);
     let secs = seconds % 60;
     countdownDisplay.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-
     if (seconds <= 0) {
       clearInterval(countdown);
       countdownDisplay.innerText = "00:00";
@@ -42,7 +46,7 @@
 
   function resendOTP() {
     resendBtn.disabled = true;
-    resendBtn.innerText = "⏳ Resending...";
+    spinner.classList.remove('d-none');
 
     fetch("/resend_otp", {
       method: "POST",
@@ -54,13 +58,13 @@
     })
     .then(res => res.json())
     .then(data => {
+      spinner.classList.add('d-none');
       if (data.status === "success") {
         alert("✅ OTP resent to your email.");
-        location.reload(); // Restart countdown
+        location.reload();
       } else {
-        alert("❌ Failed to resend OTP.");
+        alert(`❌ ${data.message}`);
         resendBtn.disabled = false;
-        resendBtn.innerText = "🔁 Resend OTP";
       }
     });
   }

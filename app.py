@@ -410,10 +410,27 @@ with app.app_context():
 
 
 # ------------------ Routes ------------------
+@app.route('/send_otp', methods=['GET', 'POST'])
+def send_otp():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        if not email:
+            flash("Please enter a valid email.")
+            return redirect(url_for('send_otp'))
 
-@app.route('/send_otp')
-def send_otp_page():
+        # Generate OTP and store in session
+        otp = str(uuid.uuid4())[:6]  # 6-char OTP
+        session['otp'] = otp
+        session['email'] = email
+
+        # OPTIONAL: Send email here (SMTP or Flask-Mail)
+        # send_email(email, otp)
+
+        flash("OTP has been sent to your email.")
+        return redirect(url_for('verify_otp'))
+
     return render_template('send_otp.html')
+
 
 #>>>>>>crf 
 

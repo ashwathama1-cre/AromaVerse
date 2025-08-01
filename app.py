@@ -536,48 +536,43 @@ def register():
 
     return render_template('register.html', csrf_token=generate_csrf())
 
-@app.route('/verify_otp', methods=['GET', 'POST'])
+@app.route('/verify_otp', methods=['POST'])
 def verify_otp():
+    data = request.get_json()
+    entered_otp = data.get('otp', '').strip()
+
     contact = session.get("otp_contact")
     method = session.get("otp_method")
     otp = session.get("otp")
     expiry_str = session.get("otp_expires")
 
     if not contact or not otp or not expiry_str:
-        flash("OTP session expired. Please try again.", "danger")
-        return redirect('/')
+        return {"status": "error", "message": "OTP session expired. Please try again."}
 
     expiry_time = datetime.strptime(expiry_str, '%Y-%m-%d %H:%M:%S')
-    time_left = int((expiry_time - datetime.now()).total_seconds())
 
-    if request.method == 'POST':
-        entered_otp = request.form.get('otp', '').strip()
-        if datetime.now() > expiry_time:
-            flash("⏰ OTP expired! Request again.", "danger")
-            return redirect('/')
-        if entered_otp == otp:
-            # ✅ OTP Verified: Now check if user exists or create new one
-            user = User.query.filter_by(username=contact).first()
-            if not user:
-                # Create new user (signup flow)
-                new_user = User(username=contact, password=generate_password_hash("1234"), role="buyer")
-                db.session.add(new_user)
-                db.session.commit()
+    if datetime.now() > expiry_time:
+        return {"status": "error", "message": "⏰ OTP expired! Please request again."}
 
-            session["username"] = contact
-            session["role"] = "buyer"  # Default role
-            flash("✅ OTP Verified. Logged in!", "success")
+    if entered_otp == otp:
+        # ✅ OTP matched
+        user = User.query.filter_by(username=contact).first()
+        if not user:
+            new_user = User(username=contact, password=generate_password_hash("1234"), role="buyer")
+            db.session.add(new_user)
+            db.session.commit()
 
-            # Clean up session
-            for key in ["otp_contact", "otp_method", "otp", "otp_expires"]:
-                session.pop(key, None)
+        session["username"] = contact
+        session["role"] = "buyer"
 
-            return redirect('/buyer_dashboard')
-        else:
-            flash("❌ Invalid OTP!", "danger")
-            return redirect(url_for('verify_otp'))
+        # Clean session after successful verification
+        for key in ["otp_contact", "otp_method", "otp", "otp_expires"]:
+            session.pop(key, None)
 
-    return render_template("verify_otp.html", time_left=time_left)
+        return {"status": "success", "message": "✅ OTP Verified. Redirecting to dashboard..."}
+    else:
+        return {"status": "error", "message": "❌ Invalid OTP!"}
+
 
 @app.route('/dashboard')
 def dashboard():

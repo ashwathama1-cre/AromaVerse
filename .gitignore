@@ -1,0 +1,34 @@
+# Flask & Python
+*.pyc
+__pycache__/
+instance/
+.env
+venv/
+.env.*
+
+# Database
+*.sqlite3
+*.db
+
+# VSCode / Editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Cache
+*.cache
+
+# Compiled templates
+*.egg-info/
+dist/
+build/

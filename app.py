@@ -686,30 +686,30 @@ def send_otp_generic():
 
 
 #>>>>>>>>resend otp
-# Store resend count in session (or DB for real-world apps)
-@app.route('/resend_otp', methods=['POST'])
-def resend_otp():
+@app.route('/verify_otp', methods=['POST'])
+def verify_otp():
     email = session.get('otp_email')
-    if not email:
-        return jsonify({'status': 'error', 'message': 'Session expired'}), 400
+    entered_otp = request.form['otp']
 
-    resend_count = session.get('resend_count', 0)
-    if resend_count >= 3:
-        return jsonify({'status': 'error', 'message': 'Maximum resend attempts reached'}), 403
+    otp_info = otp_storage.get(email)
+    if not otp_info:
+        flash("❌ OTP expired or not found", "danger")
+        return redirect(url_for('verify_otp'))
 
-    # Generate and store new OTP
-    otp = str(uuid.uuid4().int)[-6:]
-    otp_storage[email] = {
-        'otp': otp,
-        'expires': datetime.now() + timedelta(minutes=2)
-    }
+    if datetime.now() > otp_info['expires']:
+        flash("❌ OTP expired", "danger")
+        return redirect(url_for('verify_otp'))
 
-    # Send email (implement your logic here)
-    send_email(email, f"Your new OTP is: {otp}")
+    if entered_otp != otp_info['otp']:
+        flash("❌ Invalid OTP", "danger")
+        return redirect(url_for('verify_otp'))
 
-    # Increment count and refresh timer
-    session['resend_count'] = resend_count + 1
-    return jsonify({'status': 'success'})
+    # ✅ OTP is correct – now reset the resend count
+    session.pop('resend_count', None)
+
+    # Proceed with login or verification success
+    flash("✅ OTP verified successfully", "success")
+    return redirect('/dashboard')  # or wherever you want
 
 
 

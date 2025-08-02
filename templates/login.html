@@ -48,10 +48,13 @@
     {% endwith %}
 
     <!-- Login Form -->
-   <form method="POST" action="{{ url_for('login') }}">
-  {{ form.hidden_tag() }}
+  <form method="POST" action="/login">
+    {{ form.hidden_tag() }}
+    {{ form.username.label }} {{ form.username() }}
+    {{ form.password.label }} {{ form.password() }}
+        <button type="submit">Login</button>
+       </form>
 
-    
    
    
 
@@ -166,4 +169,5 @@
   }
 </script>
 {% endblock %}
+
 

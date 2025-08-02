@@ -423,6 +423,12 @@ with app.app_context():
 
 # ------------------ Routes ------------------
 
+from flask import send_from_directory
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
 #>>>>>>crf 
@@ -1576,5 +1582,6 @@ def page_not_found(e):
 # ----------------- Main App Entry -----------------
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
